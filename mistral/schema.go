@@ -7,6 +7,33 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+const (
+	RoleHuman     = "user"
+	RoleAssistant = "assistant"
+	RoleSystem    = "system"
+)
+
+func NewHumanMessage(content string) Message {
+	return Message{
+		Role:    RoleHuman,
+		Content: content,
+	}
+}
+
+func NewAssistantMessage(content string) Message {
+	return Message{
+		Role:    RoleAssistant,
+		Content: content,
+	}
+}
+
+func NewSystemMessage(content string) Message {
+	return Message{
+		Role:    RoleSystem,
+		Content: content,
+	}
+}
+
 type ChatCompletionRequest struct {
 	Model       string    `json:"model"`
 	Messages    []Message `json:"messages"`
@@ -21,7 +48,7 @@ func newRequestFromModelRequest(mr *ai.ModelRequest, modelName string) ChatCompl
 		Messages: make([]Message, 0, len(mr.Messages)),
 	}
 	for _, msg := range mr.Messages {
-		req.Messages = append(req.Messages, mapMessage(msg))
+		req.Messages = append(req.Messages, newMistralMessageFromGenkit(msg))
 	}
 	return req
 }
@@ -58,12 +85,20 @@ func parseMsgContent(content []*ai.Part) string {
 	return content[0].Text
 }
 
-func mapMessage(msg *ai.Message) Message {
+func newMistralMessageFromGenkit(msg *ai.Message) Message {
 	return Message{
 		Role:    string(msg.Role),
 		Content: parseMsgContent(msg.Content),
 	}
 }
+
+func newGenkitMessageFromMistral(msg Message) *ai.Message {
+	return &ai.Message{
+		Role:    ai.Role(msg.Role),
+		Content: []*ai.Part{ai.NewTextPart(msg.Content)},
+	}
+}
+
 func mapResponse(mr *ai.ModelRequest, resp string) *ai.ModelResponse {
 	aiMessage := &ai.Message{
 		Role:    ai.RoleModel,
@@ -74,4 +109,20 @@ func mapResponse(mr *ai.ModelRequest, resp string) *ai.ModelResponse {
 		Request: mr,
 		Message: aiMessage,
 	}
+}
+
+func mapMessagesToGenkit(messages []Message) []*ai.Message {
+	m := make([]*ai.Message, len(messages), len(messages))
+	for i, msg := range messages {
+		m[i] = newGenkitMessageFromMistral(msg)
+	}
+	return nil
+}
+
+func mapMessagesToMistral(messages []*ai.Message) []Message {
+	m := make([]Message, len(messages), len(messages))
+	for i, msg := range messages {
+		m[i] = newMistralMessageFromGenkit(msg)
+	}
+	return m
 }

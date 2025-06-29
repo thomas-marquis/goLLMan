@@ -10,28 +10,27 @@ import (
 )
 
 type Client struct {
-	apiKey  string
-	timeout time.Duration
+	apiKey       string
+	timeout      time.Duration
+	modelName    string
+	modelVersion string
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey string, modelName, modelVersion string) *Client {
 	return &Client{
-		apiKey:  apiKey,
-		timeout: 5 * time.Second,
+		apiKey:       apiKey,
+		timeout:      5 * time.Second,
+		modelName:    modelName,
+		modelVersion: modelVersion,
 	}
 }
 
-func (c *Client) ChatCompletion(prompt string) (string, error) {
-	logger.Println("Calling Mistral AI...")
-
+func (c *Client) ChatCompletion(messages []Message) (string, error) {
 	url := "https://api.mistral.ai/v1/chat/completions"
 
 	reqBody := ChatCompletionRequest{
-		Messages: []Message{
-			{Role: "system", Content: "You are a helpful assistant."},
-			{Role: "user", Content: "What is the capital of France?"},
-		},
-		Model: "mistral-large-latest",
+		Messages: messages,
+		Model:    c.modelName + "-" + c.modelVersion,
 	}
 
 	jsonValue, err := json.Marshal(reqBody)

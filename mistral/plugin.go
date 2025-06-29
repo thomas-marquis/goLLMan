@@ -25,7 +25,7 @@ func (p *Plugin) Name() string {
 }
 
 func (p *Plugin) Init(ctx context.Context, g *genkit.Genkit) error {
-	c := NewClient(p.APIKey)
+	c := NewClient(p.APIKey, "mistral-large", "latest")
 	p.Client = c
 	defineModel(g, c)
 

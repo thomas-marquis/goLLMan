@@ -38,8 +38,8 @@ func defineModel(g *genkit.Genkit, client *Client) {
 			if len(mr.Messages) == 0 {
 				return nil, fmt.Errorf("no messages provided in the model request")
 			}
-			msg := mapMessage(mr.Messages[0])
-			response, err := client.ChatCompletion(msg.Content)
+			messages := mapMessagesToMistral(mr.Messages)
+			response, err := client.ChatCompletion(messages)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get chat completion: %w", err)
 			}
