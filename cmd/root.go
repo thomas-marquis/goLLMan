@@ -4,8 +4,15 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
 )
+
+type Secret struct {
+	Mistral struct {
+		ApiToken string `yaml:"apiToken"`
+	} `yaml:"mistral"`
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "goLLMan",
@@ -15,7 +22,19 @@ var rootCmd = &cobra.Command{
     It's an experimental project that aims to create an agentic intelligent thinking program using Go.
     A possible side effect could be the AI-world domination, so use it with caution.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		agent.Run()
+		viper.SetConfigFile("secret.yaml")
+		if err := viper.ReadInConfig(); err != nil {
+			cmd.Println("Error reading config file:", err)
+			return
+		}
+
+		var secrets Secret
+		if err := viper.Unmarshal(&secrets); err != nil {
+			cmd.Println("Error unmarshalling config:", err)
+			return
+		}
+
+		agent.Run(secrets.Mistral.ApiToken)
 	},
 }
 
