@@ -42,6 +42,8 @@ func Bootstrap(apiToken string, ctrlImpltType ControllerType) (Controller, error
 	switch ctrlImpltType {
 	case CtrlTypeCmdLine:
 		return NewCmdLineController(chatFlow), nil
+	case CtrlTypeHTTP:
+		return NewHTTPController(chatFlow), nil
 	}
 
 	panic("invalid controller type: " + string(ctrlImpltType))

@@ -34,7 +34,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		ctrl, err := agent.Bootstrap(secrets.Mistral.ApiToken, agent.CtrlTypeCmdLine)
+		ctrl, err := agent.Bootstrap(secrets.Mistral.ApiToken, agent.CtrlTypeHTTP)
 		if err != nil {
 			cmd.Println("Error bootstrapping controller:", err)
 			return
