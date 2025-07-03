@@ -28,10 +28,24 @@ func Run(apiToken string) {
 		logger.Fatalf("Failed to initialize Genkit: %v", err)
 	}
 
+	chatFlow := genkit.DefineFlow(g, "chatFlow",
+		func(ctx context.Context, input string) (string, error) {
+			resp, err := genkit.Generate(ctx, g,
+				ai.WithModelName("mistral/mistral-large"),
+				// ai.WithSystem("You are a silly assistant."),
+				ai.WithPrompt(input),
+			)
+			if err != nil {
+				return "", fmt.Errorf("failed to generate response: %w", err)
+			}
+			return resp.Text(), nil
+		})
+
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println("Enter a command (or 'exit' or 'quit' to quit):")
 	for {
+		ctx = context.Background()
 		fmt.Println("\n## User:")
 		input, err := reader.ReadString('\n')
 		if err != nil {
@@ -45,14 +59,10 @@ func Run(apiToken string) {
 		}
 
 		fmt.Println("## AI:")
-		resp, err := genkit.Generate(ctx, g,
-			ai.WithModelName("mistral/mistral-large"),
-			// ai.WithSystem("You are a silly assistant."),
-			ai.WithPrompt(input),
-		)
+		result, err := chatFlow.Run(ctx, input)
 		if err != nil {
-			logger.Fatalf("Failed to generate response: %v", err)
+			logger.Fatalf("Failed to generate response from flow: %v", err)
 		}
-		fmt.Println(strings.TrimSuffix(resp.Text(), "\n"))
+		fmt.Println(strings.TrimSuffix(result, "\n"))
 	}
 }
