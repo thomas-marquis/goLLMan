@@ -34,7 +34,15 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		agent.Run(secrets.Mistral.ApiToken)
+		ctrl, err := agent.Bootstrap(secrets.Mistral.ApiToken, agent.CtrlTypeCmdLine)
+		if err != nil {
+			cmd.Println("Error bootstrapping controller:", err)
+			return
+		}
+		if err := ctrl.Run(); err != nil {
+			cmd.Println("Error running controller:", err)
+			return
+		}
 	},
 }
 

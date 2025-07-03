@@ -1,12 +1,10 @@
 package agent
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -17,7 +15,7 @@ var (
 	logger = log.New(os.Stdout, "goLLMan: ", log.LstdFlags|log.Lshortfile)
 )
 
-func Run(apiToken string) {
+func Bootstrap(apiToken string, ctrlImpltType ControllerType) (Controller, error) {
 	ctx := context.Background()
 	g, err := genkit.Init(ctx,
 		genkit.WithPlugins(
@@ -25,7 +23,7 @@ func Run(apiToken string) {
 		),
 	)
 	if err != nil {
-		logger.Fatalf("Failed to initialize Genkit: %v", err)
+		return nil, fmt.Errorf("Failed to initialize Genkit: %w", err)
 	}
 
 	chatFlow := genkit.DefineFlow(g, "chatFlow",
@@ -41,28 +39,10 @@ func Run(apiToken string) {
 			return resp.Text(), nil
 		})
 
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("Enter a command (or 'exit' or 'quit' to quit):")
-	for {
-		ctx = context.Background()
-		fmt.Println("\n## User:")
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			logger.Fatalf("Failed to read input: %v", err)
-		}
-
-		input = strings.TrimSuffix(input, "\n")
-		if input == "exit" || input == "quit" {
-			fmt.Println("## AI/\nSee you next time!")
-			break
-		}
-
-		fmt.Println("## AI:")
-		result, err := chatFlow.Run(ctx, input)
-		if err != nil {
-			logger.Fatalf("Failed to generate response from flow: %v", err)
-		}
-		fmt.Println(strings.TrimSuffix(result, "\n"))
+	switch ctrlImpltType {
+	case CtrlTypeCmdLine:
+		return NewCmdLineController(chatFlow), nil
 	}
+
+	panic("invalid controller type: " + string(ctrlImpltType))
 }
