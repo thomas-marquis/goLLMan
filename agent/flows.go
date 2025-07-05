@@ -3,24 +3,27 @@ package agent
 import (
 	"context"
 	"fmt"
+	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"log"
 	"os"
+	"time"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
-	"github.com/thomas-marquis/goLLMan/mistral"
 )
 
 var (
 	logger = log.New(os.Stdout, "goLLMan: ", log.LstdFlags|log.Lshortfile)
 )
 
-func Bootstrap(apiToken string, ctrlImpltType ControllerType) (Controller, error) {
+func Bootstrap(apiToken string, controllerType ControllerType) (Controller, error) {
 	ctx := context.Background()
 	g, err := genkit.Init(ctx,
 		genkit.WithPlugins(
-			mistral.NewPlugin(apiToken),
+			mistral.NewPlugin(apiToken,
+				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(1, 1, time.Second))),
 		),
+		genkit.WithDefaultModel("mistral/mistral-small"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize Genkit: %w", err)
@@ -29,8 +32,7 @@ func Bootstrap(apiToken string, ctrlImpltType ControllerType) (Controller, error
 	chatFlow := genkit.DefineFlow(g, "chatFlow",
 		func(ctx context.Context, input string) (string, error) {
 			resp, err := genkit.Generate(ctx, g,
-				ai.WithModelName("mistral/mistral-large"),
-				// ai.WithSystem("You are a silly assistant."),
+				ai.WithSystem("You are a silly assistant."),
 				ai.WithPrompt(input),
 			)
 			if err != nil {
@@ -39,12 +41,12 @@ func Bootstrap(apiToken string, ctrlImpltType ControllerType) (Controller, error
 			return resp.Text(), nil
 		})
 
-	switch ctrlImpltType {
+	switch controllerType {
 	case CtrlTypeCmdLine:
 		return NewCmdLineController(chatFlow), nil
 	case CtrlTypeHTTP:
 		return NewHTTPController(chatFlow), nil
 	}
 
-	panic("invalid controller type: " + string(ctrlImpltType))
+	panic("invalid controller type: " + string(controllerType))
 }
