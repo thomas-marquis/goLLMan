@@ -9,3 +9,15 @@ func ContentToText(content []*ai.Part) string {
 	}
 	return content[0].Text
 }
+
+func ContentFromText(text string) []*ai.Part {
+	if text == "" {
+		return nil
+	}
+	return []*ai.Part{
+		{
+			Kind: ai.PartText,
+			Text: text,
+		},
+	}
+}

@@ -11,11 +11,12 @@ import (
 )
 
 type httpController struct {
-	flow *genkit_core.Flow[string, string, struct{}]
+	flow *genkit_core.Flow[ChatbotInput, string, struct{}]
+	cfg  Config
 }
 
-func NewHTTPController(flow *genkit_core.Flow[string, string, struct{}]) *httpController {
-	return &httpController{flow}
+func NewHTTPController(cfg Config, flow *genkit_core.Flow[ChatbotInput, string, struct{}]) *httpController {
+	return &httpController{flow, cfg}
 }
 
 func (c *httpController) Run() error {

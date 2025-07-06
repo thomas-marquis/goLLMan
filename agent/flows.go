@@ -2,11 +2,13 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/firebase/genkit/go/core"
 	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"github.com/thomas-marquis/goLLMan/agent/docstore"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
+	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/pkg"
 	"time"
 
@@ -14,19 +16,33 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 )
 
+const (
+	systemPrompt = `
+You are a helpful assistant and you answer questions.
+You have access to a set of documents. Use them to answer the user's question.
+Don't make up answers, only use the documents provided. If you don't know the answer say it.`
+)
+
+type ChatbotInput struct {
+	Question string `json:"question"`
+	Session  string `json:"session,omitempty"`
+}
+
 type Agent struct {
 	g           *genkit.Genkit
 	indexerFlow *core.Flow[string, any, struct{}]
-	chatbotFlow *core.Flow[string, string, struct{}]
+	chatbotFlow *core.Flow[ChatbotInput, string, struct{}]
 	docLoader   loader.DocumentLoader
 	docStore    docstore.DocStore
 	ctrl        Controller
-	verbose     bool
+	store       session.Store
+	cfg         Config
 }
 
-func New(verbose bool) *Agent {
+func New(cfg Config, store session.Store) *Agent {
 	return &Agent{
-		verbose: verbose,
+		store: store,
+		cfg:   cfg,
 	}
 }
 
@@ -37,7 +53,7 @@ func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error 
 		genkit.WithPlugins(
 			mistral.NewPlugin(apiToken,
 				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second)),
-				mistral.WithVerbose(a.verbose),
+				mistral.WithVerbose(a.cfg.Verbose),
 			),
 		),
 		genkit.WithDefaultModel("mistral/mistral-small"),
@@ -74,23 +90,51 @@ func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error 
 	)
 
 	a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotFlow",
-		func(ctx context.Context, question string) (string, error) {
-			docs, err := a.docStore.Retrieve(ctx, question, 6)
+		func(ctx context.Context, input ChatbotInput) (string, error) {
+			docs, err := a.docStore.Retrieve(ctx, input.Question, 6)
 			if err != nil {
 				return "", fmt.Errorf("failed to retrieve documents: %w", err)
 			}
 
+			sess, err := a.store.GetByID(ctx, input.Session)
+			if err != nil {
+				if errors.Is(err, session.ErrSessionNotFound) {
+					sess, err = a.initSession(ctx, input.Session)
+					if err != nil {
+						return "", fmt.Errorf("failed to initialize session: %w", err)
+					}
+				} else {
+					return "", fmt.Errorf("failed to get session: %w", err)
+
+				}
+			}
+
+			prevMsg, err := sess.GetMessages()
+			if err != nil {
+				return "", fmt.Errorf("failed to get previous messages from session: %w", err)
+			}
+
 			resp, err := genkit.Generate(ctx, a.g,
-				ai.WithSystem(`
-You are a helpful assistant and you answer questions.
-You have access to a set of documents. Use them to answer the user's question.
-Don't make up answers, only use the documents provided. If you don't know the answer say it.`),
-				ai.WithPrompt(question),
+				ai.WithMessages(prevMsg...),
+				ai.WithPrompt(input.Question),
 				ai.WithDocs(docs...),
 				ai.WithOutputInstructions("Please answer in the same language as the question, and be concise."),
 			)
 			if err != nil {
 				return "", fmt.Errorf("failed to generate response: %w", err)
+			}
+
+			userMsg := resp.Request.Messages[len(resp.Request.Messages)-1]
+			assistantMsg := ai.NewMessage(resp.Message.Role, resp.Message.Metadata, resp.Message.Content...)
+
+			if err := sess.AddMessage(userMsg); err != nil {
+				return "", fmt.Errorf("failed to add user message to session: %w", err)
+			}
+			if err := sess.AddMessage(assistantMsg); err != nil {
+				return "", fmt.Errorf("failed to add assitant message to session: %w", err)
+			}
+			if err := a.store.Save(ctx, sess); err != nil {
+				return "", fmt.Errorf("failed to save session: %w", err)
 			}
 
 			return resp.Text(), nil
@@ -99,9 +143,9 @@ Don't make up answers, only use the documents provided. If you don't know the an
 
 	switch controllerType {
 	case CtrlTypeCmdLine:
-		a.ctrl = NewCmdLineController(a.chatbotFlow)
+		a.ctrl = NewCmdLineController(a.cfg, a.chatbotFlow)
 	case CtrlTypeHTTP:
-		a.ctrl = NewHTTPController(a.chatbotFlow)
+		a.ctrl = NewHTTPController(a.cfg, a.chatbotFlow)
 	default:
 		return fmt.Errorf("unsupported controller type: %v", controllerType)
 	}
@@ -134,4 +178,21 @@ func (a *Agent) StartChatSession() error {
 		return fmt.Errorf("failed to start chat session: %w", err)
 	}
 	return nil
+}
+
+func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Session, error) {
+	sess := session.New(
+		session.WithID(sessionID),
+		session.WithLimit(a.cfg.SessionMessageLimit),
+	)
+	systemMsg := ai.NewMessage(
+		ai.RoleSystem, nil,
+		pkg.ContentFromText(systemPrompt)...,
+	)
+	sess.AddMessage(systemMsg)
+
+	if err := a.store.Save(ctx, sess); err != nil {
+		return nil, fmt.Errorf("failed to save new session: %w", err)
+	}
+	return sess, nil
 }

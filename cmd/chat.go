@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
+	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 
 	"github.com/spf13/cobra"
 )
@@ -10,6 +11,7 @@ import (
 // chatCmd represents the chat command
 var (
 	controllerType string
+	sessionID      string
 	chatCmd        = &cobra.Command{
 		Use:   "chat",
 		Short: "Chat in the terminal.",
@@ -24,7 +26,15 @@ var (
 				return
 			}
 
-			a := agent.New(verbose)
+			store := in_memory.NewSessionStore()
+
+			agentCfg := agent.Config{
+				SessionID:           viper.GetString("session"),
+				Verbose:             verbose,
+				SessionMessageLimit: 6,
+			}
+
+			a := agent.New(agentCfg, store)
 			if err := a.Bootstrap(apiToken, ctrlType); err != nil {
 				cmd.Println("Error bootstrapping agent:", err)
 				return
@@ -41,4 +51,7 @@ var (
 func init() {
 	chatCmd.Flags().StringVarP(&controllerType, "interface", "i", "cmd",
 		"Interface type to use for the chat session. Options: cmd, http.")
+
+	chatCmd.Flags().StringVarP(&sessionID, "session", "s", "",
+		"Session ID to use for the chat session. If not provided, a new session will be created.")
 }

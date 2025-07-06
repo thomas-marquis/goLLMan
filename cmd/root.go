@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/thomas-marquis/goLLMan/agent"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -8,8 +9,9 @@ import (
 )
 
 var (
-	cfgFile string
-	rootCmd = &cobra.Command{
+	cfgFile     string
+	agentConfig agent.Config
+	rootCmd     = &cobra.Command{
 		Use:   "goLLMan",
 		Short: "A golang implementation of an agentic intelligent tinking program.",
 		Long: `This applicaiton is able to thing by itself and make decisions.
@@ -47,4 +49,6 @@ func initConfig() {
 		rootCmd.Printf("Error reading config file: %s\n", viper.ConfigFileUsed())
 		return
 	}
+
+	agentConfig = agent.Config{}
 }

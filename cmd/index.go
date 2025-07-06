@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
+	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 
 	"github.com/spf13/cobra"
 )
@@ -22,8 +23,11 @@ The indexing doesn't reindex existing documents.
 	Run: func(cmd *cobra.Command, args []string) {
 		apiToken := viper.GetString("mistral.apiToken")
 		verbose := viper.GetBool("verbose")
+		store := in_memory.NewSessionStore()
 
-		a := agent.New(verbose)
+		agentCfg := agent.Config{Verbose: verbose}
+
+		a := agent.New(agentCfg, store)
 		if err := a.Bootstrap(apiToken, agent.CtrlTypeCmdLine); err != nil {
 			cmd.Println("Error bootstrapping agent:", err)
 			return

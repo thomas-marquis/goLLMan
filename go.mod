@@ -6,10 +6,10 @@ toolchain go1.24.4
 
 require (
 	github.com/firebase/genkit/go v0.6.2
-	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	github.com/thomas-marquis/genkit-mistral v0.2.0
+	github.com/stretchr/testify v1.10.0
+	github.com/thomas-marquis/genkit-mistral v0.3.1
 	github.com/timsims/pamphlet v0.1.6
 	github.com/tmc/langchaingo v0.1.13
 )
@@ -19,6 +19,7 @@ replace github.com/thomas-marquis/genkit-mistral => ../../opensource/genkit-mist
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -33,6 +34,7 @@ require (
 	github.com/mbleigh/raymond v0.0.0-20250414171441-6b3a58ab9e0a // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
