@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"github.com/thomas-marquis/goLLMan/pkg"
 	"net/http"
 
 	genkit_core "github.com/firebase/genkit/go/core"
@@ -21,6 +22,6 @@ func (c *httpController) Run() error {
 	ctx := context.Background()
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /chat", genkit.Handler(c.flow))
-	logger.Fatal(genkit_server.Start(ctx, "127.0.0.1:3400", mux))
+	pkg.Logger.Fatal(genkit_server.Start(ctx, "127.0.0.1:3400", mux))
 	return nil
 }
