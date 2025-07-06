@@ -21,8 +21,9 @@ The indexing doesn't reindex existing documents.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		apiToken := viper.GetString("mistral.apiToken")
+		verbose := viper.GetBool("verbose")
 
-		a := agent.New()
+		a := agent.New(verbose)
 		if err := a.Bootstrap(apiToken, agent.CtrlTypeCmdLine); err != nil {
 			cmd.Println("Error bootstrapping agent:", err)
 			return

@@ -21,10 +21,13 @@ type Agent struct {
 	docLoader   loader.DocumentLoader
 	docStore    docstore.DocStore
 	ctrl        Controller
+	verbose     bool
 }
 
-func New() *Agent {
-	return &Agent{}
+func New(verbose bool) *Agent {
+	return &Agent{
+		verbose: verbose,
+	}
 }
 
 func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error {
@@ -33,7 +36,9 @@ func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error 
 	a.g, err = genkit.Init(ctx,
 		genkit.WithPlugins(
 			mistral.NewPlugin(apiToken,
-				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second))),
+				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second)),
+				mistral.WithVerbose(a.verbose),
+			),
 		),
 		genkit.WithDefaultModel("mistral/mistral-small"),
 	)

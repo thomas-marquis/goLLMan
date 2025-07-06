@@ -16,6 +16,7 @@ var (
 		Long:  `Interactive terminal chat interface. Type "quit" to exit.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			apiToken := viper.GetString("mistral.apiToken")
+			verbose := viper.GetBool("verbose")
 			ctrlTypeValue, _ := cmd.Flags().GetString("interface")
 			ctrlType, err := agent.CtrlTypeFromString(ctrlTypeValue)
 			if err != nil {
@@ -23,7 +24,7 @@ var (
 				return
 			}
 
-			a := agent.New()
+			a := agent.New(verbose)
 			if err := a.Bootstrap(apiToken, ctrlType); err != nil {
 				cmd.Println("Error bootstrapping agent:", err)
 				return

@@ -32,6 +32,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "secret.yaml",
 		"config file (default is ./secret.yaml)")
 
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "enable verbose output")
+	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
 }
