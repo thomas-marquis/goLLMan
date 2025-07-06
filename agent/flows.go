@@ -33,12 +33,12 @@ func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error 
 	a.g, err = genkit.Init(ctx,
 		genkit.WithPlugins(
 			mistral.NewPlugin(apiToken,
-				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(1, 1, time.Second))),
+				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second))),
 		),
 		genkit.WithDefaultModel("mistral/mistral-small"),
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize Genkit: %w", err)
+		return fmt.Errorf("failed to initialize Genkit: %w", err)
 	}
 
 	a.docLoader = loader.NewLocalEpubLoader("documents/effectiveconcurrencyingo.epub")
@@ -82,6 +82,7 @@ You have access to a set of documents. Use them to answer the user's question.
 Don't make up answers, only use the documents provided. If you don't know the answer say it.`),
 				ai.WithPrompt(question),
 				ai.WithDocs(docs...),
+				ai.WithOutputInstructions("Please answer in the same language as the question, and be concise."),
 			)
 			if err != nil {
 				return "", fmt.Errorf("failed to generate response: %w", err)
@@ -97,7 +98,7 @@ Don't make up answers, only use the documents provided. If you don't know the an
 	case CtrlTypeHTTP:
 		a.ctrl = NewHTTPController(a.chatbotFlow)
 	default:
-		return fmt.Errorf("unsupported controller type: %s", controllerType)
+		return fmt.Errorf("unsupported controller type: %v", controllerType)
 	}
 
 	return nil

@@ -33,8 +33,8 @@ func NewLocalVecStore(g *genkit.Genkit, embeddingModel string) (*LocalVecStore, 
 	}
 
 	splitter := textsplitter.NewRecursiveCharacter(
-		textsplitter.WithChunkSize(100),
-		textsplitter.WithChunkOverlap(10),
+		textsplitter.WithChunkSize(1000),
+		textsplitter.WithChunkOverlap(20),
 	)
 
 	if err := localvec.Init(); err != nil {
@@ -52,7 +52,6 @@ func (s *LocalVecStore) Index(ctx context.Context, docs []*ai.Document) error {
 	preparedDocs := make([]*ai.Document, 0)
 	for _, doc := range docs {
 		text := pkg.ContentToText(doc.Content)
-		title := getTitle(doc)
 
 		chunks, err := s.splitter.SplitText(text)
 		if err != nil {
@@ -63,12 +62,27 @@ func (s *LocalVecStore) Index(ctx context.Context, docs []*ai.Document) error {
 			if len(chunk) == 0 {
 				continue
 			}
-			chunk = "# " + title + "\n" + strings.TrimSpace(chunk)
+			chunk = strings.TrimSpace(chunk)
 			preparedDocs = append(preparedDocs, ai.DocumentFromText(chunk, nil))
 		}
 	}
 
-	return localvec.Index(ctx, docs, s.store)
+	documentsBatches := make([][]*ai.Document, 0)
+	batchSize := 10
+	for i := 0; i < len(preparedDocs); i += batchSize {
+		end := i + batchSize
+		if end > len(preparedDocs) {
+			end = len(preparedDocs)
+		}
+		documentsBatches = append(documentsBatches, preparedDocs[i:end])
+	}
+
+	for _, batch := range documentsBatches {
+		if err := localvec.Index(ctx, batch, s.store); err != nil {
+			return fmt.Errorf("failed to index batch of documents: %w", err)
+		}
+	}
+	return nil
 }
 
 func (s *LocalVecStore) Retrieve(ctx context.Context, query string, limit int) ([]*ai.Document, error) {
