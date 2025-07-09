@@ -34,7 +34,6 @@ type Agent struct {
 	chatbotFlow *core.Flow[ChatbotInput, string, struct{}]
 	docLoader   loader.DocumentLoader
 	docStore    docstore.DocStore
-	ctrl        Controller
 	store       session.Store
 	cfg         Config
 }
@@ -46,7 +45,21 @@ func New(cfg Config, store session.Store) *Agent {
 	}
 }
 
-func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error {
+func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
+	if a.chatbotFlow == nil {
+		panic("Flow called on a nil flow: please call Bootstrap first")
+	}
+	return a.chatbotFlow
+}
+
+func (a *Agent) Genkit() *genkit.Genkit {
+	if a.g == nil {
+		panic("Genkit called on a nil Genkit: please call Bootstrap first")
+	}
+	return a.g
+}
+
+func (a *Agent) Bootstrap(apiToken string) error {
 	ctx := context.Background()
 	var err error
 	a.g, err = genkit.Init(ctx,
@@ -141,15 +154,6 @@ func (a *Agent) Bootstrap(apiToken string, controllerType ControllerType) error 
 		},
 	)
 
-	switch controllerType {
-	case CtrlTypeCmdLine:
-		a.ctrl = NewCmdLineController(a.cfg, a.chatbotFlow)
-	case CtrlTypeHTTP:
-		a.ctrl = NewHTTPController(a.cfg, a.chatbotFlow)
-	default:
-		return fmt.Errorf("unsupported controller type: %v", controllerType)
-	}
-
 	return nil
 }
 
@@ -165,18 +169,6 @@ func (a *Agent) Index() error {
 		return fmt.Errorf("failed to run indexer flow: %w", err)
 	}
 	pkg.Logger.Println("Indexing flow complete")
-	return nil
-}
-
-func (a *Agent) StartChatSession() error {
-	if a.ctrl == nil {
-		panic("StartChatSession called on a nil controller: please call Bootstrap first")
-	}
-
-	pkg.Logger.Println("Starting chat session...")
-	if err := a.ctrl.Run(); err != nil {
-		return fmt.Errorf("failed to start chat session: %w", err)
-	}
 	return nil
 }
 

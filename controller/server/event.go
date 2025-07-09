@@ -1,0 +1,52 @@
+package server
+
+import (
+	"github.com/firebase/genkit/go/ai"
+	"github.com/thomas-marquis/goLLMan/pkg"
+)
+
+type messagesChan chan *ai.Message
+
+type eventStream struct {
+	// Events are pushed to this channel by the main events-gathering routine
+	Message chan *ai.Message
+
+	// New client connections
+	NewClients chan messagesChan
+
+	// Closed client connections
+	ClosedClients chan messagesChan
+
+	// Total client connections
+	TotalClients map[messagesChan]struct{}
+}
+
+// It Listens all incoming requests from clients.
+// Handles addition and removal of clients and broadcast messages to clients.
+func (s *eventStream) listen() {
+	for {
+		select {
+		// Add new available client
+		case client := <-s.NewClients:
+			s.TotalClients[client] = struct{}{}
+			pkg.Logger.Printf("Client added. %d registered clients", len(s.TotalClients))
+
+		// Remove closed client
+		case client := <-s.ClosedClients:
+			delete(s.TotalClients, client)
+			close(client)
+			pkg.Logger.Printf("Removed client. %d registered clients", len(s.TotalClients))
+
+		// Broadcast message to client
+		case eventMsg := <-s.Message:
+			for clientMessageChan := range s.TotalClients {
+				select {
+				case clientMessageChan <- eventMsg:
+					// Message sent successfully
+				default:
+					// Failed to send, dropping message
+				}
+			}
+		}
+	}
+}

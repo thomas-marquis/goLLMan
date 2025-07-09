@@ -4,6 +4,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
+	"github.com/thomas-marquis/goLLMan/controller"
+	"github.com/thomas-marquis/goLLMan/controller/cmdline"
+	"github.com/thomas-marquis/goLLMan/controller/server"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -20,7 +24,7 @@ var (
 			apiToken := viper.GetString("mistral.apiToken")
 			verbose := viper.GetBool("verbose")
 			ctrlTypeValue, _ := cmd.Flags().GetString("interface")
-			ctrlType, err := agent.CtrlTypeFromString(ctrlTypeValue)
+			ctrlType, err := controller.CtrlTypeFromString(ctrlTypeValue)
 			if err != nil {
 				cmd.Println("Error getting interface type:", err)
 				return
@@ -35,14 +39,25 @@ var (
 			}
 
 			a := agent.New(agentCfg, store)
-			if err := a.Bootstrap(apiToken, ctrlType); err != nil {
+			if err := a.Bootstrap(apiToken); err != nil {
 				cmd.Println("Error bootstrapping agent:", err)
-				return
+				os.Exit(1)
 			}
 
-			if err := a.StartChatSession(); err != nil {
+			var ctrl controller.Controller
+			switch ctrlType {
+			case controller.CtrlTypeCmdLine:
+				ctrl = cmdline.New(agentCfg, a.Flow())
+			case controller.CtrlTypeHTTP:
+				ctrl = server.New(agentCfg, a.Flow(), store, a.Genkit())
+			default:
+				cmd.Println("unsupported controller type: %s", controllerType)
+				os.Exit(1)
+			}
+
+			if err := ctrl.Run(); err != nil {
 				cmd.Println("Error running chat session:", err)
-				return
+				os.Exit(1)
 			}
 		},
 	}

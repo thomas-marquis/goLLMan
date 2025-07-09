@@ -1,4 +1,4 @@
-package agent
+package controller
 
 import "fmt"
 
@@ -11,9 +11,9 @@ const (
 
 func CtrlTypeFromString(s string) (ControllerType, error) {
 	switch s {
-	case "cmdline", "cmd":
+	case "cmdline", "cmd", "interactive":
 		return CtrlTypeCmdLine, nil
-	case "http", "rest":
+	case "http", "rest", "web":
 		return CtrlTypeHTTP, nil
 	default:
 		return -1, fmt.Errorf("unknown controller type: %s, available types are: cmd, http", s)

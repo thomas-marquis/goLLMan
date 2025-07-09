@@ -1,11 +1,10 @@
 package cmd
 
 import (
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
-
-	"github.com/spf13/cobra"
 )
 
 // indexCmd represents the index command
@@ -28,7 +27,7 @@ The indexing doesn't reindex existing documents.
 		agentCfg := agent.Config{Verbose: verbose}
 
 		a := agent.New(agentCfg, store)
-		if err := a.Bootstrap(apiToken, agent.CtrlTypeCmdLine); err != nil {
+		if err := a.Bootstrap(apiToken); err != nil {
 			cmd.Println("Error bootstrapping agent:", err)
 			return
 		}

@@ -1,9 +1,10 @@
-package agent
+package cmdline
 
 import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"os"
 	"strings"
@@ -12,11 +13,11 @@ import (
 )
 
 type cmdLineController struct {
-	flow *genkit_core.Flow[ChatbotInput, string, struct{}]
-	cfg  Config
+	flow *genkit_core.Flow[agent.ChatbotInput, string, struct{}]
+	cfg  agent.Config
 }
 
-func NewCmdLineController(cfg Config, flow *genkit_core.Flow[ChatbotInput, string, struct{}]) *cmdLineController {
+func New(cfg agent.Config, flow *genkit_core.Flow[agent.ChatbotInput, string, struct{}]) *cmdLineController {
 	return &cmdLineController{flow, cfg}
 }
 
@@ -46,7 +47,7 @@ func (c *cmdLineController) Run() error {
 		}
 
 		fmt.Println("## AI:")
-		result, err := c.flow.Run(ctx, ChatbotInput{Question: input, Session: sessionID})
+		result, err := c.flow.Run(ctx, agent.ChatbotInput{Question: input, Session: sessionID})
 		if err != nil {
 			return fmt.Errorf("Failed to generate response from flow: %v", err)
 		}
