@@ -28,8 +28,7 @@ func Test_Session_AddMessage_ShouldRemoveOldestMessageWhenLimitIsReached(t *test
 	}
 
 	// Then
-	res, err := sess.GetMessages()
-	assert.NoError(t, err)
+	res := sess.GetMessages()
 	assert.Len(t, res, 3)
 	assert.Equal(t, "system prompt: should not be removed", pkg.ContentToText(res[0].Content))
 	assert.Equal(t, "user message 3", pkg.ContentToText(res[1].Content))
@@ -55,8 +54,7 @@ func Test_Session_AddMessage_ShouldRemoveOldestMessageWithoutSystemMessage(t *te
 	}
 
 	// Then
-	res, err := sess.GetMessages()
-	assert.NoError(t, err)
+	res := sess.GetMessages()
 	assert.Len(t, res, 2)
 	assert.Equal(t, "user message 3", pkg.ContentToText(res[0].Content))
 	assert.Equal(t, "assistant response 3", pkg.ContentToText(res[1].Content))

@@ -29,7 +29,7 @@ func (s *Server) GetPageHandler(r *gin.Engine) {
 
 func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 	r.POST("/messages", func(c *gin.Context) {
-		pkg.Logger.Println("Message received")
+		pkg.Logger.Println("MessageBySessionID received")
 
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
@@ -72,19 +72,30 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 			return
 		}
+		stream.AttachSession(sess)
 
 		v, ok := c.Get(clientChanKey)
 		if !ok {
+			c.HTML(http.StatusInternalServerError, "",
+				components.ErrorBanner("client not found"))
 			return
 		}
 		clientChan, ok := v.(messagesChan)
 		if !ok {
+			c.HTML(http.StatusInternalServerError, "",
+				components.ErrorBanner("internal processing error"))
 			return
 		}
-		sess.Sub(clientChan)
+
+		go func() {
+			pkg.Logger.Println("Catch up previous messages:")
+			for _, m := range sess.GetMessages() {
+				pkg.Logger.Println(pkg.ContentToText(m.Content))
+				clientChan <- m
+			}
+		}()
 
 		c.Stream(func(w io.Writer) bool {
-			// Stream message to client from message channel
 			if msg, ok := <-clientChan; ok {
 				buff := new(bytes.Buffer)
 				components.Message(string(msg.Role),

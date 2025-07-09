@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/google/uuid"
-	"github.com/thomas-marquis/goLLMan/pkg"
 )
 
 type Option func(s *Session)
@@ -97,24 +96,33 @@ func (s *Session) AddMessage(msg *ai.Message) error {
 	return nil
 }
 
-func (s *Session) Sub(c chan *ai.Message) {
-	pkg.Logger.Println("Catch up previous messages:")
-	for _, msg := range s.messages {
-		pkg.Logger.Println(pkg.ContentToText(msg.Content))
-		c <- msg
-	}
-	pkg.Logger.Println("Starting listening new messages...")
-	go func() {
-		for {
-			select {
-			case msg := <-s.messageChan:
-				pkg.Logger.Println(pkg.ContentToText(msg.Content))
-				c <- msg
-			}
-		}
-	}()
+//func (s *Session) Sub(c chan *ai.MessageBySessionID) {
+//	pkg.Logger.Println("Catch up previous messages:")
+//
+//	s.suscribers[c] = struct{}{}
+//
+//	for _, msg := range s.messages {
+//		pkg.Logger.Println(pkg.ContentToText(msg.Content))
+//		c <- msg
+//	}
+//	pkg.Logger.Println("Starting listening new messages...")
+//	go func() {
+//		for {
+//			select {
+//			case msg := <-s.messageChan:
+//				pkg.Logger.Println(pkg.ContentToText(msg.Content))
+//				for sub := range s.suscribers {
+//					sub <- msg
+//				}
+//			}
+//		}
+//	}()
+//}
+
+func (s *Session) ListenMessages() chan *ai.Message {
+	return s.messageChan
 }
 
-func (s *Session) GetMessages() ([]*ai.Message, error) {
-	return s.messages, nil
+func (s *Session) GetMessages() []*ai.Message {
+	return s.messages
 }

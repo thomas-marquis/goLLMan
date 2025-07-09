@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/firebase/genkit/go/ai"
+	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/pkg"
 )
 
@@ -9,7 +10,7 @@ type messagesChan chan *ai.Message
 
 type eventStream struct {
 	// Events are pushed to this channel by the main events-gathering routine
-	Message chan *ai.Message
+	MessageBySessionID map[string]messagesChan
 
 	// New client connections
 	NewClients chan messagesChan
@@ -19,6 +20,31 @@ type eventStream struct {
 
 	// Total client connections
 	TotalClients map[messagesChan]struct{}
+}
+
+func (s *eventStream) AttachSession(sess *session.Session) {
+	if _, exists := s.MessageBySessionID[sess.ID()]; exists {
+		pkg.Logger.Printf("Session %s already attached, skipping", sess.ID())
+		return
+	}
+	s.MessageBySessionID[sess.ID()] = sess.ListenMessages()
+
+	go func() {
+		for {
+			select {
+			case msg := <-s.MessageBySessionID[sess.ID()]:
+				// Broadcast the message to all clients
+				for clientMessageChan := range s.TotalClients {
+					select {
+					case clientMessageChan <- msg:
+						// MessageBySessionID sent successfully
+					default:
+						// Failed to send, dropping message
+					}
+				}
+			}
+		}
+	}()
 }
 
 // It Listens all incoming requests from clients.
@@ -36,17 +62,6 @@ func (s *eventStream) listen() {
 			delete(s.TotalClients, client)
 			close(client)
 			pkg.Logger.Printf("Removed client. %d registered clients", len(s.TotalClients))
-
-		// Broadcast message to client
-		case eventMsg := <-s.Message:
-			for clientMessageChan := range s.TotalClients {
-				select {
-				case clientMessageChan <- eventMsg:
-					// Message sent successfully
-				default:
-					// Failed to send, dropping message
-				}
-			}
 		}
 	}
 }

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	genkit_core "github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session"
@@ -29,10 +32,10 @@ func New(
 ) *Server {
 	router := gin.Default()
 	stream := &eventStream{
-		Message:       make(messagesChan),
-		NewClients:    make(chan messagesChan),
-		ClosedClients: make(chan messagesChan),
-		TotalClients:  make(map[messagesChan]struct{}),
+		MessageBySessionID: make(map[string]messagesChan),
+		NewClients:         make(chan messagesChan),
+		ClosedClients:      make(chan messagesChan),
+		TotalClients:       make(map[messagesChan]struct{}),
 	}
 
 	go stream.listen()
@@ -49,6 +52,10 @@ func New(
 	router.SetTrustedProxies(nil)
 	ginHtmlRenderer := router.HTMLRender
 	router.HTMLRender = &gintemplrenderer.HTMLTemplRenderer{FallbackHtmlRenderer: ginHtmlRenderer}
+
+	// TODO: finish implementing session management (kill idle or abusive users...)
+	store := cookie.NewStore([]byte("secret")) // TODO: use a real secret here!
+	router.Use(sessions.Sessions("chatsession", store))
 
 	s.GetPageHandler(router)
 	s.SSEMessagesHandler(router, sessionStore, stream)

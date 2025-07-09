@@ -122,10 +122,7 @@ func (a *Agent) Bootstrap(apiToken string) error {
 				}
 			}
 
-			prevMsg, err := sess.GetMessages()
-			if err != nil {
-				return "", fmt.Errorf("failed to get previous messages from session: %w", err)
-			}
+			prevMsg := sess.GetMessages()
 
 			resp, err := genkit.Generate(ctx, a.g,
 				ai.WithMessages(prevMsg...),
