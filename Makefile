@@ -1,2 +1,2 @@
-generate_templ:
+generate:
 	@templ generate

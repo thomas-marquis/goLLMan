@@ -16,7 +16,9 @@ import (
 var (
 	controllerType string
 	sessionID      string
-	chatCmd        = &cobra.Command{
+	disableAI      bool
+
+	chatCmd = &cobra.Command{
 		Use:   "chat",
 		Short: "Chat in the terminal.",
 		Long:  `Interactive terminal chat interface. Type "quit" to exit.`,
@@ -36,6 +38,7 @@ var (
 				SessionID:           viper.GetString("session"),
 				Verbose:             verbose,
 				SessionMessageLimit: 6,
+				DisableAI:           disableAI,
 			}
 
 			a := agent.New(agentCfg, store)
@@ -69,4 +72,7 @@ func init() {
 
 	chatCmd.Flags().StringVarP(&sessionID, "session", "s", "",
 		"Session ID to use for the chat session. If not provided, a new session will be created.")
+
+	chatCmd.Flags().BoolVarP(&disableAI, "disable-ai", "d", false,
+		"Disable AI and use generic fake response instead (for testing purpose).")
 }
