@@ -123,6 +123,14 @@ func (a *Agent) Bootstrap(apiToken string) error {
 			}
 
 			prevMsg := sess.GetMessages()
+			removeContext(prevMsg)
+			userMsg := ai.NewUserMessage(pkg.ContentFromText(input.Question)...)
+			if err := sess.AddMessage(userMsg); err != nil {
+				return "", fmt.Errorf("failed to add user message to session: %w", err)
+			}
+			if err := a.store.Save(ctx, sess); err != nil {
+				return "", fmt.Errorf("failed to save session: %w", err)
+			}
 
 			resp, err := genkit.Generate(ctx, a.g,
 				ai.WithMessages(prevMsg...),
@@ -134,12 +142,8 @@ func (a *Agent) Bootstrap(apiToken string) error {
 				return "", fmt.Errorf("failed to generate response: %w", err)
 			}
 
-			userMsg := resp.Request.Messages[len(resp.Request.Messages)-1]
 			assistantMsg := ai.NewMessage(resp.Message.Role, resp.Message.Metadata, resp.Message.Content...)
 
-			if err := sess.AddMessage(userMsg); err != nil {
-				return "", fmt.Errorf("failed to add user message to session: %w", err)
-			}
 			if err := sess.AddMessage(assistantMsg); err != nil {
 				return "", fmt.Errorf("failed to add assitant message to session: %w", err)
 			}
@@ -184,4 +188,24 @@ func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Ses
 		return nil, fmt.Errorf("failed to save new session: %w", err)
 	}
 	return sess, nil
+}
+
+func removeContext(msg []*ai.Message) {
+	for _, m := range msg {
+		if m.Role != ai.RoleUser {
+			continue
+		}
+
+		var ctxPartIdx int = -1
+		for i, part := range m.Content {
+			if val, exists := part.Metadata["purpose"]; exists && val == "context" {
+				ctxPartIdx = i
+				break
+			}
+		}
+
+		if ctxPartIdx != -1 {
+			m.Content = m.Content[:ctxPartIdx]
+		}
+	}
 }

@@ -2,15 +2,14 @@ package server
 
 import (
 	"bytes"
-	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/gin-gonic/gin"
+	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/controller/server/components"
 	"github.com/thomas-marquis/goLLMan/pkg"
 	"io"
 	"net/http"
-	"time"
 )
 
 func (s *Server) FlowsHandlers(r *gin.Engine, g *genkit.Genkit) {
@@ -43,18 +42,12 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 			return
 		}
-		msg := ai.NewMessage(ai.RoleUser, nil, pkg.ContentFromText(formData.Question)...)
-		if err := sess.AddMessage(msg); err != nil {
-			pkg.Logger.Printf("Error adding message to session: %s\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
-			return
-		}
 
-		time.Sleep(2 * time.Second) // Simulate processing delay
-		response := "Je suis un chatbot, je ne peux pas répondre à cette question."
-		botResponse := ai.NewMessage(ai.RoleModel, nil, pkg.ContentFromText(response)...)
-		if err := sess.AddMessage(botResponse); err != nil {
-			pkg.Logger.Printf("Error adding message to session: %s\n", err)
+		// TODO: inject the agent instead the flow
+		// TODO: pass the session ID to the agent class
+		_, err = s.flow.Run(c.Request.Context(), agent.ChatbotInput{Question: formData.Question, Session: sess.ID()})
+		if err != nil {
+			pkg.Logger.Printf("EFailed to generate response from flow: %s\n", err)
 			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 			return
 		}

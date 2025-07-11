@@ -6,6 +6,7 @@ import (
 	"github.com/thomas-marquis/goLLMan/pkg"
 )
 
+// TODO: this type cloud be owned by the agentic layer
 type messagesChan chan *ai.Message
 
 type eventStream struct {
