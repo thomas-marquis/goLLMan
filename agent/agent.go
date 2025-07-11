@@ -37,11 +37,11 @@ func New(cfg Config, store session.Store) *Agent {
 }
 
 func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
-	if a.chatbotAIFlow == nil {
-		panic("Flow called on a nil flow: please call Bootstrap first")
-	}
 	if a.cfg.DisableAI {
 		return a.chatbotFakeFlow
+	}
+	if a.chatbotAIFlow == nil {
+		panic("Flow called on a nil flow: please call Bootstrap first")
 	}
 	return a.chatbotAIFlow
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/google/uuid"
+	"github.com/thomas-marquis/goLLMan/pkg"
 )
 
 type Option func(s *Session)
@@ -48,7 +49,7 @@ func New(opts ...Option) *Session {
 	s := &Session{
 		messages:         make([]*ai.Message, 0),
 		hasSystemMessage: false,
-		messageChan:      make(chan *ai.Message),
+		messageChan:      make(chan *ai.Message, 1),
 	}
 
 	for _, opt := range opts {
@@ -91,33 +92,11 @@ func (s *Session) AddMessage(msg *ai.Message) error {
 	select {
 	case s.messageChan <- msg:
 	default:
+		pkg.Logger.Printf("Session %s message channel is full, dropping message: %s", s.id, pkg.ContentToText(msg.Content))
 	}
 
 	return nil
 }
-
-//func (s *Session) Sub(c chan *ai.MessageBySessionID) {
-//	pkg.Logger.Println("Catch up previous messages:")
-//
-//	s.suscribers[c] = struct{}{}
-//
-//	for _, msg := range s.messages {
-//		pkg.Logger.Println(pkg.ContentToText(msg.Content))
-//		c <- msg
-//	}
-//	pkg.Logger.Println("Starting listening new messages...")
-//	go func() {
-//		for {
-//			select {
-//			case msg := <-s.messageChan:
-//				pkg.Logger.Println(pkg.ContentToText(msg.Content))
-//				for sub := range s.suscribers {
-//					sub <- msg
-//				}
-//			}
-//		}
-//	}()
-//}
 
 func (s *Session) ListenMessages() chan *ai.Message {
 	return s.messageChan

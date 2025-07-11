@@ -38,9 +38,8 @@ func (s *eventStream) AttachSession(sess *session.Session) {
 				for clientMessageChan := range s.TotalClients {
 					select {
 					case clientMessageChan <- msg:
-						// MessageBySessionID sent successfully
 					default:
-						// Failed to send, dropping message
+						pkg.Logger.Printf("Client message channel full, dropping message")
 					}
 				}
 			}

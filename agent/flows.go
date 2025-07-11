@@ -87,7 +87,37 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 }
 
 func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (string, error) {
-	return fmt.Sprintf("I agree with you when you say:\n<< %s >>", input.Question), nil
+	sess, err := a.store.GetByID(ctx, input.Session)
+	if err != nil {
+		if errors.Is(err, session.ErrSessionNotFound) {
+			sess, err = a.initSession(ctx, input.Session)
+			if err != nil {
+				return "", fmt.Errorf("failed to initialize session: %w", err)
+			}
+		} else {
+			return "", fmt.Errorf("failed to get session: %w", err)
+
+		}
+	}
+
+	userMsg := ai.NewUserMessage(pkg.ContentFromText(input.Question)...)
+	if err := sess.AddMessage(userMsg); err != nil {
+		return "", fmt.Errorf("failed to add user message to session: %w", err)
+	}
+	if err := a.store.Save(ctx, sess); err != nil {
+		return "", fmt.Errorf("failed to save session: %w", err)
+	}
+
+	fakeResponse := fmt.Sprintf("I agree with you when you say:\n<< %s >>", input.Question)
+	fakeAiMsg := ai.NewModelMessage(pkg.ContentFromText(fakeResponse)...)
+	if err := sess.AddMessage(fakeAiMsg); err != nil {
+		return "", fmt.Errorf("failed to add fake AI message to session: %w", err)
+	}
+	if err := a.store.Save(ctx, sess); err != nil {
+		return "", fmt.Errorf("failed to save session with fake AI message: %w", err)
+	}
+
+	return fakeResponse, nil
 }
 
 func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Session, error) {

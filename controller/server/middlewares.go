@@ -19,7 +19,7 @@ func headersSSEMiddleware() gin.HandlerFunc {
 func (s *eventStream) sseConnectMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Initialize client channel
-		clientChan := make(messagesChan)
+		clientChan := make(messagesChan, 1)
 
 		// Send new connection to event server
 		s.NewClients <- clientChan
