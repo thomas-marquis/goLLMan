@@ -61,6 +61,7 @@ func (a *Agent) Bootstrap(apiToken string) error {
 			mistral.NewPlugin(apiToken,
 				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second)),
 				mistral.WithVerbose(a.cfg.Verbose),
+				mistral.WithClientTimeout(15*time.Second),
 			),
 		),
 		genkit.WithDefaultModel("mistral/mistral-small"),

@@ -108,7 +108,7 @@ func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (stri
 		return "", fmt.Errorf("failed to save session: %w", err)
 	}
 
-	fakeResponse := fmt.Sprintf("I agree with you when you say:\n<< %s >>", input.Question)
+	fakeResponse := fmt.Sprintf("I agree with you when you say:\n%s", input.Question)
 	fakeAiMsg := ai.NewModelMessage(pkg.ContentFromText(fakeResponse)...)
 	if err := sess.AddMessage(fakeAiMsg); err != nil {
 		return "", fmt.Errorf("failed to add fake AI message to session: %w", err)

@@ -16,7 +16,10 @@ func getMessageStyle(role string) (string, string, string) {
 
 templ Message(role, content string) {
     {{messageClass, bgColor, alignmentClass := getMessageStyle(role)}}
-
+    {{messageContent, err := convertToHTML(content)}}
+    if err != nil {
+        {{messageContent = content}}
+    }
 
     <div class={alignmentClass}>
         <div class={"flex", "items-start", "gap-2.5"}>
@@ -27,7 +30,7 @@ templ Message(role, content string) {
             }
             <div class={"flex", "flex-col", "max-w-lg"}>
                 <div class={messageClass, "p-3", "rounded-lg"}>
-                    {content}
+                    @templ.Raw(messageContent)
                 </div>
             </div>
             if role == "model" {

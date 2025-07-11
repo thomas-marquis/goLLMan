@@ -8,6 +8,7 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/controller/server/components"
 	"github.com/thomas-marquis/goLLMan/pkg"
+	"github.com/yuin/goldmark"
 	"io"
 	"net/http"
 )
@@ -90,13 +91,30 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 
 		c.Stream(func(w io.Writer) bool {
 			if msg, ok := <-clientChan; ok {
+				_, err := convertToHTML(pkg.ContentToText(msg.Content))
+				if err != nil {
+					pkg.Logger.Printf("Error converting content to HTML: %s\n", err)
+					c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+					return false
+				}
 				buff := new(bytes.Buffer)
-				components.Message(string(msg.Role),
-					pkg.ContentToText(msg.Content)).Render(c.Request.Context(), buff)
+				components.Message(
+					string(msg.Role),
+					pkg.ContentToText(msg.Content),
+				).Render(c.Request.Context(), buff)
 				c.SSEvent("message", buff.String())
 				return true
 			}
 			return false
 		})
 	})
+}
+
+func convertToHTML(content string) (string, error) {
+	var buf bytes.Buffer
+	if err := goldmark.Convert([]byte(content), &buf); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
