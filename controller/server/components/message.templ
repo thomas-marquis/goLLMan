@@ -28,7 +28,7 @@ templ Message(role, content string) {
                     Me
                 </div>
             }
-            <div class={"flex", "flex-col", "max-w-lg"}>
+            <div class={"flex", "flex-col", "max-w-4xl"}>
                 <div class={messageClass, "p-3", "rounded-lg"}>
                     @templ.Raw(messageContent)
                 </div>

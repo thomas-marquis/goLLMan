@@ -116,7 +116,7 @@ func Message(role, content string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		var templ_7745c5c3_Var8 = []any{"flex", "flex-col", "max-w-lg"}
+		var templ_7745c5c3_Var8 = []any{"flex", "flex-col", "max-w-4xl"}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var8...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
