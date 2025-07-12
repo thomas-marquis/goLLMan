@@ -31,6 +31,9 @@ func New(
 	g *genkit.Genkit,
 ) *Server {
 	router := gin.Default()
+	router.Static("/static", "./static")
+	router.StaticFile("/favicon.ico", "./static/img/favicon.ico")
+
 	stream := &eventStream{
 		MessageBySessionID: make(map[string]messagesChan),
 		NewClients:         make(chan messagesChan),

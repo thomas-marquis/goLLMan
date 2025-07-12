@@ -40,13 +40,16 @@ templ Page() {
                 </button>
             </header>
 
-            <div hx-ext="sse"
-                id="messages"
-                sse-connect="/stream"
-                sse-swap="message"
-                hx-swap="beforeend"
-                class="flex-1 overflow-y-auto p-4 space-y-4">
-                <!-- Messages will be loaded here -->
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 relative">
+                <div hx-ext="sse"
+                    id="messages"
+                    sse-connect="/stream"
+                    sse-swap="message"
+                    hx-swap="beforeend"
+                    class="space-y-4">
+                    <!-- Messages will be loaded here -->
+                </div>
+                @NotThinking()
             </div>
 
             <form class="flex p-4 bg-primary-100 dark:bg-gray-700 rounded-b-lg"
@@ -71,11 +74,11 @@ templ Page() {
             });
 
             function scrollToBottom() {
-                const messagesContainer = document.getElementById('messages');
+                const messagesContainer = document.getElementById('messages-container');
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
 
-            const messagesContainer = document.getElementById('messages');
+            const messagesContainer = document.getElementById('messages-container');
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.addedNodes.length) {

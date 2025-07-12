@@ -2,6 +2,8 @@ package server
 
 import (
 	"bytes"
+	"github.com/a-h/templ"
+	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/gin-gonic/gin"
 	"github.com/thomas-marquis/goLLMan/agent"
@@ -53,7 +55,9 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "", components.Message("user", formData.Question))
+		c.HTML(http.StatusOK, "",
+			components.Message("user", formData.Question),
+		)
 	})
 }
 
@@ -74,7 +78,7 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 				components.ErrorBanner("client not found"))
 			return
 		}
-		clientChan, ok := v.(messagesChan)
+		clientMessageChan, ok := v.(messagesChan)
 		if !ok {
 			c.HTML(http.StatusInternalServerError, "",
 				components.ErrorBanner("internal processing error"))
@@ -85,29 +89,45 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 			pkg.Logger.Println("Catch up previous messages:")
 			for _, m := range sess.GetMessages() {
 				pkg.Logger.Println(pkg.ContentToText(m.Content))
-				clientChan <- m
+				clientMessageChan <- m
 			}
 		}()
 
 		c.Stream(func(w io.Writer) bool {
-			if msg, ok := <-clientChan; ok {
+			if msg, ok := <-clientMessageChan; ok {
+				if msg.Role == ai.RoleUser {
+					sendToStream(c, components.Thinking())
+				} else {
+					sendToStream(c, components.NotThinking())
+				}
+
 				_, err := convertToHTML(pkg.ContentToText(msg.Content))
 				if err != nil {
 					pkg.Logger.Printf("Error converting content to HTML: %s\n", err)
 					c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 					return false
 				}
-				buff := new(bytes.Buffer)
-				components.Message(
-					string(msg.Role),
-					pkg.ContentToText(msg.Content),
-				).Render(c.Request.Context(), buff)
-				c.SSEvent("message", buff.String())
+
+				sendToStream(c,
+					components.Message(
+						string(msg.Role),
+						pkg.ContentToText(msg.Content),
+					))
 				return true
 			}
 			return false
 		})
 	})
+}
+
+func sendToStream(c *gin.Context, comp templ.Component) {
+	buff := new(bytes.Buffer)
+	if err := comp.Render(c.Request.Context(), buff); err != nil {
+		pkg.Logger.Printf("Error rendering component: %s\n", err)
+		c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+		return
+	}
+	c.SSEvent("message", buff.String())
 }
 
 func convertToHTML(content string) (string, error) {

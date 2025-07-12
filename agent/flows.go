@@ -8,6 +8,7 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/pkg"
+	"time"
 )
 
 const (
@@ -108,6 +109,7 @@ func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (stri
 		return "", fmt.Errorf("failed to save session: %w", err)
 	}
 
+	time.Sleep(2 * time.Second) // Simulate processing delay
 	fakeResponse := fmt.Sprintf("I agree with you when you say:\n%s", input.Question)
 	fakeAiMsg := ai.NewModelMessage(pkg.ContentFromText(fakeResponse)...)
 	if err := sess.AddMessage(fakeAiMsg); err != nil {
