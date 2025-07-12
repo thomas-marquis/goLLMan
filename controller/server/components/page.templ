@@ -45,7 +45,7 @@ templ Page() {
                     id="messages"
                     sse-connect="/stream"
                     sse-swap="message"
-                    hx-swap="beforeend"
+                    hx-swap="beforeend show:bottom"
                     class="space-y-4">
                     <!-- Messages will be loaded here -->
                 </div>
@@ -72,27 +72,6 @@ templ Page() {
             document.getElementById('theme-toggle').addEventListener('click', function() {
                 document.documentElement.classList.toggle('dark');
             });
-
-            function scrollToBottom() {
-                const messagesContainer = document.getElementById('messages-container');
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-
-            const messagesContainer = document.getElementById('messages-container');
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.addedNodes.length) {
-                        scrollToBottom();
-                    }
-                });
-            });
-
-            observer.observe(messagesContainer, {
-                childList: true,
-                subtree: true
-            });
-
-            scrollToBottom();
         </script>
     </body>
     </html>
