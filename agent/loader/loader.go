@@ -1,7 +1,11 @@
 package loader
 
-import "github.com/firebase/genkit/go/ai"
+import (
+	"github.com/firebase/genkit/go/ai"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
+)
 
-type DocumentLoader interface {
-	Load() ([]*ai.Document, error)
+type BookLoader interface {
+	List() ([]domain.Book, error)
+	Load(bookId string) (domain.Book, []*ai.Document, error)
 }

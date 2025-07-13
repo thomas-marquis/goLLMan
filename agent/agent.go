@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
-	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"github.com/thomas-marquis/goLLMan/agent/docstore"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
-	"time"
 )
 
 type ChatbotInput struct {
@@ -23,17 +22,33 @@ type Agent struct {
 	indexerFlow     *core.Flow[string, any, struct{}]
 	chatbotAIFlow   *core.Flow[ChatbotInput, string, struct{}]
 	chatbotFakeFlow *core.Flow[ChatbotInput, string, struct{}]
-	docLoader       loader.DocumentLoader
+	docLoader       loader.BookLoader
 	docStore        docstore.DocStore
 	store           session.Store
 	cfg             Config
+	bookRepository  domain.BookRepository
 }
 
-func New(cfg Config, store session.Store) *Agent {
-	return &Agent{
-		store: store,
-		cfg:   cfg,
+func New(
+	g *genkit.Genkit,
+	cfg Config,
+	store session.Store,
+	docLoader loader.BookLoader,
+	bookRepository domain.BookRepository,
+) *Agent {
+	a := &Agent{
+		g:              g,
+		store:          store,
+		cfg:            cfg,
+		bookRepository: bookRepository,
+		docLoader:      docLoader,
 	}
+
+	a.indexerFlow = genkit.DefineFlow(a.g, "indexerFlow", a.indexerFlowHandler)
+	a.chatbotAIFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)
+	a.chatbotFakeFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
+
+	return a
 }
 
 func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
@@ -46,41 +61,11 @@ func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
 	return a.chatbotAIFlow
 }
 
-func (a *Agent) Genkit() *genkit.Genkit {
+func (a *Agent) G() *genkit.Genkit {
 	if a.g == nil {
-		panic("Genkit called on a nil Genkit: please call Bootstrap first")
+		panic("G called on a nil G: please call Bootstrap first")
 	}
 	return a.g
-}
-
-func (a *Agent) Bootstrap(apiToken string) error {
-	ctx := context.Background()
-	var err error
-	a.g, err = genkit.Init(ctx,
-		genkit.WithPlugins(
-			mistral.NewPlugin(apiToken,
-				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(6, 6, time.Second)),
-				mistral.WithVerbose(a.cfg.Verbose),
-				mistral.WithClientTimeout(15*time.Second),
-			),
-		),
-		genkit.WithDefaultModel("mistral/mistral-small"),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize Genkit: %w", err)
-	}
-
-	a.docLoader = loader.NewLocalEpubLoader("documents/effectiveconcurrencyingo.epub")
-	a.docStore, err = docstore.NewLocalVecStore(a.g, "mistral/mistral-embed")
-	if err != nil {
-		return fmt.Errorf("failed to create local vector docStore: %w", err)
-	}
-
-	a.indexerFlow = genkit.DefineFlow(a.g, "indexerFlow", a.indexerFlowHandler)
-	a.chatbotAIFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)
-	a.chatbotFakeFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
-
-	return nil
 }
 
 func (a *Agent) Index() error {

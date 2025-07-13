@@ -23,8 +23,6 @@ var (
 		Short: "Chat in the terminal.",
 		Long:  `Interactive terminal chat interface. Type "quit" to exit.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			apiToken := viper.GetString("mistral.apiToken")
-			verbose := viper.GetBool("verbose")
 			ctrlTypeValue, _ := cmd.Flags().GetString("interface")
 			ctrlType, err := controller.CtrlTypeFromString(ctrlTypeValue)
 			if err != nil {
@@ -34,15 +32,12 @@ var (
 
 			store := in_memory.NewSessionStore()
 
-			agentCfg := agent.Config{
-				SessionID:           viper.GetString("session"),
-				Verbose:             verbose,
-				SessionMessageLimit: 6,
-				DisableAI:           disableAI,
-			}
+			agentConfig.SessionID = viper.GetString("session")
+			agentConfig.DisableAI = disableAI
+			agentConfig.SessionMessageLimit = 6
 
-			a := agent.New(agentCfg, store)
-			if err := a.Bootstrap(apiToken); err != nil {
+			a := agent.New(agentConfig, store)
+			if err := a.Bootstrap(); err != nil {
 				cmd.Println("Error bootstrapping agent:", err)
 				os.Exit(1)
 			}
@@ -50,9 +45,9 @@ var (
 			var ctrl controller.Controller
 			switch ctrlType {
 			case controller.CtrlTypeCmdLine:
-				ctrl = cmdline.New(agentCfg, a.Flow())
+				ctrl = cmdline.New(agentConfig, a.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentCfg, a.Flow(), store, a.Genkit())
+				ctrl = server.New(agentConfig, a.Flow(), store, a.G())
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)

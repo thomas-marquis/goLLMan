@@ -7,6 +7,7 @@ import (
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/thomas-marquis/goLLMan/agent/session"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
 	"time"
 )
@@ -18,16 +19,28 @@ You have access to a set of documents. Use them to answer the user's question.
 Don't make up answers, only use the documents provided. If you don't know the answer say it.`
 )
 
-func (a *Agent) indexerFlowHandler(ctx context.Context, path string) (any, error) {
-	documents, err := genkit.Run(ctx, "loadDocuments", func() ([]*ai.Document, error) {
-		return a.docLoader.Load()
+type loadBookResult struct {
+	Book  domain.Book
+	Parts []*ai.Document
+}
+
+func (a *Agent) indexerFlowHandler(ctx context.Context, bookId string) (any, error) {
+	loadingResults, err := genkit.Run(ctx, "loadDocuments", func() (loadBookResult, error) {
+		book, docs, err := a.docLoader.Load(bookId)
+		if err != nil {
+			return loadBookResult{}, fmt.Errorf("failed to load book %s: %w", bookId, err)
+		}
+		return loadBookResult{
+			Book:  book,
+			Parts: docs,
+		}, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to load documents from path %s: %w", path, err)
+		return nil, fmt.Errorf("failed to load documents from book %s: %w", , err)
 	}
 
 	_, err = genkit.Run(ctx, "indexDocuments", func() (any, error) {
-		return nil, a.docStore.Index(ctx, documents)
+		return nil, a.docStore.Index(ctx, loadingResults.Book, loadingResults.Parts)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to index documents: %w", err)
