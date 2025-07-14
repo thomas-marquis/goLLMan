@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/viper"
-	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 	"github.com/thomas-marquis/goLLMan/controller"
 	"github.com/thomas-marquis/goLLMan/controller/cmdline"
@@ -36,18 +35,12 @@ var (
 			agentConfig.DisableAI = disableAI
 			agentConfig.SessionMessageLimit = 6
 
-			a := agent.New(agentConfig, store)
-			if err := a.Bootstrap(); err != nil {
-				cmd.Println("Error bootstrapping agent:", err)
-				os.Exit(1)
-			}
-
 			var ctrl controller.Controller
 			switch ctrlType {
 			case controller.CtrlTypeCmdLine:
-				ctrl = cmdline.New(agentConfig, a.Flow())
+				ctrl = cmdline.New(agentConfig, mainAgent.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentConfig, a.Flow(), store, a.G())
+				ctrl = server.New(agentConfig, mainAgent.Flow(), store, mainAgent.G())
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)

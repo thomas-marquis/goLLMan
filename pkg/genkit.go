@@ -21,3 +21,23 @@ func ContentFromText(text string) []*ai.Part {
 		},
 	}
 }
+
+func ClearMessageContext(msg []*ai.Message) {
+	for _, m := range msg {
+		if m.Role != ai.RoleUser {
+			continue
+		}
+
+		var ctxPartIdx int = -1
+		for i, part := range m.Content {
+			if val, exists := part.Metadata["purpose"]; exists && val == "context" {
+				ctxPartIdx = i
+				break
+			}
+		}
+
+		if ctxPartIdx != -1 {
+			m.Content = m.Content[:ctxPartIdx]
+		}
+	}
+}

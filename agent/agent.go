@@ -15,18 +15,18 @@ import (
 type ChatbotInput struct {
 	Question string `json:"question"`
 	Session  string `json:"session,omitempty"`
+	BookID   string `json:"book_id,omitempty"`
 }
 
 type Agent struct {
-	g               *genkit.Genkit
-	indexerFlow     *core.Flow[string, any, struct{}]
-	chatbotAIFlow   *core.Flow[ChatbotInput, string, struct{}]
-	chatbotFakeFlow *core.Flow[ChatbotInput, string, struct{}]
-	docLoader       loader.BookLoader
-	docStore        docstore.DocStore
-	store           session.Store
-	cfg             Config
-	bookRepository  domain.BookRepository
+	g              *genkit.Genkit
+	indexerFlow    *core.Flow[domain.Book, any, struct{}]
+	chatbotFlow    *core.Flow[ChatbotInput, string, struct{}]
+	docLoader      loader.BookLoader
+	docStore       docstore.DocStore
+	sessionStore   session.Store
+	cfg            Config
+	bookRepository domain.BookRepository
 }
 
 func New(
@@ -35,50 +35,57 @@ func New(
 	store session.Store,
 	docLoader loader.BookLoader,
 	bookRepository domain.BookRepository,
+	vectorStore docstore.DocStore,
 ) *Agent {
 	a := &Agent{
 		g:              g,
-		store:          store,
+		sessionStore:   store,
 		cfg:            cfg,
 		bookRepository: bookRepository,
 		docLoader:      docLoader,
+		docStore:       vectorStore,
 	}
 
 	a.indexerFlow = genkit.DefineFlow(a.g, "indexerFlow", a.indexerFlowHandler)
-	a.chatbotAIFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)
-	a.chatbotFakeFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
+
+	if cfg.DisableAI {
+		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
+	} else {
+		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)
+	}
 
 	return a
 }
 
+// Flow returns the chatbot flow used by the agent.
 func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
-	if a.cfg.DisableAI {
-		return a.chatbotFakeFlow
-	}
-	if a.chatbotAIFlow == nil {
-		panic("Flow called on a nil flow: please call Bootstrap first")
-	}
-	return a.chatbotAIFlow
+	return a.chatbotFlow
 }
 
+// G returns the Genkit instance used by the agent.
 func (a *Agent) G() *genkit.Genkit {
-	if a.g == nil {
-		panic("G called on a nil G: please call Bootstrap first")
-	}
 	return a.g
 }
 
+// Index starts the indexing process for the agent.
 func (a *Agent) Index() error {
-	if a.indexerFlow == nil {
-		panic("Index called on a nil flow: please call Bootstrap first")
+	ctx := context.Background()
+	filePath := "documents/effectiveconcurrencyingo.epub"
+	parsedBook, err := a.bookRepository.ReadFromFile(ctx, filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read parsedBook from file %s: %w", filePath, err)
 	}
 
-	ctx := context.Background()
-	pkg.Logger.Println("Indexing started...")
-	_, err := a.indexerFlow.Run(ctx, "documents/effectiveconcurrencyingo.epub")
+	book, err := a.bookRepository.Add(ctx, parsedBook.Title, parsedBook.Author, parsedBook.Metadata)
 	if err != nil {
+		return fmt.Errorf("failed to add book %s by %s: %w", parsedBook.Title, parsedBook.Author, err)
+	}
+
+	pkg.Logger.Println("Indexing started...")
+	if _, err := a.indexerFlow.Run(ctx, book); err != nil {
 		return fmt.Errorf("failed to run indexer flow: %w", err)
 	}
+
 	pkg.Logger.Println("Indexing flow complete")
 	return nil
 }

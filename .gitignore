@@ -34,3 +34,4 @@ go.work.sum
 secret.yaml
 documents
 /.run/
+/db/books.json

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/timsims/pamphlet"
 	"os"
 	"strconv"
 	"sync"
@@ -12,11 +13,17 @@ import (
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 )
 
+const (
+	bookMetaLocalEpubPathKey = "local_epub_filepath"
+)
+
 // BookRepositoryLocal represents a local repository of books.
 type BookRepositoryLocal struct {
 	filePath string
 	mu       sync.Mutex
 }
+
+var _ domain.BookRepository = (*BookRepositoryLocal)(nil)
 
 // NewBookRepositoryLocal creates a new instance of BookRepositoryLocal.
 func NewBookRepositoryLocal(jsonFile string) *BookRepositoryLocal {
@@ -26,11 +33,11 @@ func NewBookRepositoryLocal(jsonFile string) *BookRepositoryLocal {
 }
 
 // List retrieves the list of books.
-func (b *BookRepositoryLocal) List(ctx context.Context) ([]domain.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (r *BookRepositoryLocal) List(ctx context.Context) ([]domain.Book, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	data, err := os.ReadFile(b.filePath)
+	data, err := os.ReadFile(r.filePath)
 	if err != nil {
 		return nil, errors.Join(domain.ErrRepositoryError, err)
 	}
@@ -44,26 +51,35 @@ func (b *BookRepositoryLocal) List(ctx context.Context) ([]domain.Book, error) {
 }
 
 // Add adds a new book to the repository.
-func (b *BookRepositoryLocal) Add(ctx context.Context, title, author string) (domain.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (r *BookRepositoryLocal) Add(ctx context.Context, title, author string, metadata map[string]any) (domain.Book, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	books, err := b.readBooksFromFile()
+	books, err := r.readBooksFromFile()
 	if err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
 
+	// Check if the book already exists
+	for _, book := range books {
+		if book.Title == title && book.Author == author {
+			return book, nil
+		}
+	}
+
+	// If not, create a new book
 	// Generate a simple ID for the new book
 	id := generateID(books)
 	newBook := domain.Book{
-		ID:     id,
-		Title:  title,
-		Author: author,
+		ID:       id,
+		Title:    title,
+		Author:   author,
+		Metadata: metadata,
 	}
 
 	books = append(books, newBook)
 
-	if err := b.writeBooksToFile(books); err != nil {
+	if err := r.writeBooksToFile(books); err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
 
@@ -71,11 +87,11 @@ func (b *BookRepositoryLocal) Add(ctx context.Context, title, author string) (do
 }
 
 // GetByID retrieves a book by its ID.
-func (b *BookRepositoryLocal) GetByID(ctx context.Context, id string) (domain.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (r *BookRepositoryLocal) GetByID(ctx context.Context, id string) (domain.Book, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	books, err := b.readBooksFromFile()
+	books, err := r.readBooksFromFile()
 	if err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
@@ -90,11 +106,11 @@ func (b *BookRepositoryLocal) GetByID(ctx context.Context, id string) (domain.Bo
 }
 
 // GetByTitleAndAuthor retrieves a book by its title and author.
-func (b *BookRepositoryLocal) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (r *BookRepositoryLocal) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	books, err := b.readBooksFromFile()
+	books, err := r.readBooksFromFile()
 	if err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
@@ -108,9 +124,13 @@ func (b *BookRepositoryLocal) GetByTitleAndAuthor(ctx context.Context, title, au
 	return domain.Book{}, domain.ErrBookNotFound
 }
 
+func (r *BookRepositoryLocal) ReadFromFile(ctx context.Context, filePath string) (domain.Book, error) {
+	return parseEpubFromFile(filePath)
+}
+
 // readBooksFromFile reads the list of books from the file.
-func (b *BookRepositoryLocal) readBooksFromFile() ([]domain.Book, error) {
-	data, err := os.ReadFile(b.filePath)
+func (r *BookRepositoryLocal) readBooksFromFile() ([]domain.Book, error) {
+	data, err := os.ReadFile(r.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []domain.Book{}, nil
@@ -127,13 +147,13 @@ func (b *BookRepositoryLocal) readBooksFromFile() ([]domain.Book, error) {
 }
 
 // writeBooksToFile writes the list of books to the file.
-func (b *BookRepositoryLocal) writeBooksToFile(books []domain.Book) error {
+func (r *BookRepositoryLocal) writeBooksToFile(books []domain.Book) error {
 	data, err := json.Marshal(books)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(b.filePath, data, 0644)
+	return os.WriteFile(r.filePath, data, 0644)
 }
 
 // generateID generates a simple ID for a new book.
@@ -146,4 +166,24 @@ func generateID(books []domain.Book) string {
 		}
 	}
 	return fmt.Sprintf("%d", maxID+1)
+}
+
+func parseEpubFromFile(filePath string) (domain.Book, error) {
+	parser, err := pamphlet.Open(filePath)
+	if err != nil {
+		return domain.Book{}, fmt.Errorf("error opening epub at %s: %w", filePath, err)
+	}
+
+	book := parser.GetBook()
+	if book == nil {
+		return domain.Book{}, fmt.Errorf("no book found in epub at %s", filePath)
+	}
+
+	return domain.Book{
+		Title:  book.Title,
+		Author: book.Author,
+		Metadata: map[string]any{
+			bookMetaLocalEpubPathKey: filePath,
+		},
+	}, nil
 }

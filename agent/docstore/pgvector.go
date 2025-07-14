@@ -2,7 +2,6 @@ package docstore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -15,6 +14,7 @@ import (
 
 const (
 	queryInsertBookIndex = "INSERT INTO book_index (book_id, content, embedding) VALUES ($1, $2, $3)"
+	querySearchNearest   = "SELECT book_id, content FROM book_index WHERE embedding <#> $1"
 )
 
 type PgVectorStore struct {
@@ -51,19 +51,6 @@ func NewPgVectorStore(
 }
 
 func (s *PgVectorStore) Index(ctx context.Context, book domain.Book, docs []*ai.Document) error {
-	var bookID int
-	var err error
-	_, bookID, err = s.getBookByTitleAndAuthor(ctx, book.Title, book.Author)
-	if err != nil {
-		if !errors.Is(err, errBookDoesntExists) {
-			bookID, err = s.saveBook(ctx, book)
-			if err != nil {
-				return err
-			}
-		}
-		return err
-	}
-
 	preparedDocs, err := splitDocuments(s.splitter, docs)
 	if err != nil {
 		return fmt.Errorf("failed to split documents: %w", err)
@@ -85,11 +72,11 @@ func (s *PgVectorStore) Index(ctx context.Context, book domain.Book, docs []*ai.
 			return fmt.Errorf("failed to embed documents: %w", err)
 		}
 
-		batchValues := make([]any, 0, batchSize*3)
+		batchValues := make([]any, 0, batchSize*nbValues)
 		for i, doc := range batch {
 			content := pkg.ContentToText(doc.Content)
 			embedding := pgvector.NewVector(embedRes.Embeddings[i].Embedding).String()
-			batchValues = append(batchValues, bookID, content, embedding)
+			batchValues = append(batchValues, book.ID, content, embedding)
 		}
 
 		tx, err := s.pool.Begin(ctx)

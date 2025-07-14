@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,24 +11,26 @@ import (
 )
 
 const (
-	querySelectBookByID             = "SELECT id, title, author FROM books WHERE id = $1"
-	queryInsertBook                 = "INSERT INTO books (title, author) VALUES ($1, $2) RETURNING id"
-	querySelectAllBooks             = "SELECT id, title, author FROM books"
-	querySelectBookByTitleAndAuthor = "SELECT id, title, author FROM books WHERE title = $1 AND author = $2"
+	querySelectBookByID             = "SELECT id, title, author, metadata FROM books WHERE id = $1"
+	queryInsertBook                 = "INSERT INTO books (title, author, metadata) VALUES ($1, $2, $3) RETURNING id"
+	querySelectAllBooks             = "SELECT id, title, author, metadata FROM books"
+	querySelectBookByTitleAndAuthor = "SELECT id, title, author, metadata FROM books WHERE title = $1 AND author = $2"
 )
 
 type BookRepositoryPostgres struct {
 	pool *pgxpool.Pool
 }
 
-func NewBookRepository(pool *pgxpool.Pool) *BookRepositoryPostgres {
+var _ domain.BookRepository = (*BookRepositoryPostgres)(nil)
+
+func NewBookRepositoryPostgres(pool *pgxpool.Pool) *BookRepositoryPostgres {
 	return &BookRepositoryPostgres{
 		pool: pool,
 	}
 }
 
-func (b *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error) {
-	rows, err := b.pool.Query(ctx, querySelectAllBooks)
+func (r *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error) {
+	rows, err := r.pool.Query(ctx, querySelectAllBooks)
 	if err != nil {
 		return nil, errors.Join(domain.ErrRepositoryError, err)
 	}
@@ -36,8 +39,20 @@ func (b *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error
 	var books []domain.Book
 	for rows.Next() {
 		var book domain.Book
-		if err := rows.Scan(&book.ID, &book.Title, &book.Author); err != nil {
+		var metadataJson []byte
+
+		if err := rows.Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
 			return nil, errors.Join(domain.ErrRepositoryError, err)
+		}
+
+		if metadataJson != nil {
+			var metadata map[string]any
+			if err := json.Unmarshal(metadataJson, &metadata); err != nil {
+				return nil, errors.Join(domain.ErrRepositoryError, err)
+			}
+			book.Metadata = metadata
+		} else {
+			book.Metadata = nil
 		}
 		books = append(books, book)
 	}
@@ -49,13 +64,13 @@ func (b *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error
 	return books, nil
 }
 
-func (b *BookRepositoryPostgres) Add(ctx context.Context, title, author string) (domain.Book, error) {
+func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, metadata map[string]any) (domain.Book, error) {
 	// Check if the book already exists
 	var book domain.Book
 	var err error
 
 	exists := true
-	book, err = b.GetByTitleAndAuthor(ctx, title, author)
+	book, err = r.GetByTitleAndAuthor(ctx, title, author)
 	if err != nil {
 		if errors.Is(err, domain.ErrBookNotFound) {
 			exists = false
@@ -68,7 +83,16 @@ func (b *BookRepositoryPostgres) Add(ctx context.Context, title, author string) 
 	}
 
 	// If the book does not exist, insert it
-	if err := b.pool.QueryRow(ctx, queryInsertBook, title, author).Scan(&book.ID); err != nil {
+	var metadataJson []byte
+
+	if metadata != nil {
+		metadataJson, err = json.Marshal(metadata)
+		if err != nil {
+			return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
+		}
+	}
+
+	if err := r.pool.QueryRow(ctx, queryInsertBook, title, author, metadataJson).Scan(&book.ID); err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
 	book.Title = title
@@ -77,31 +101,60 @@ func (b *BookRepositoryPostgres) Add(ctx context.Context, title, author string) 
 	return book, nil
 }
 
-func (b *BookRepositoryPostgres) GetByID(ctx context.Context, id string) (domain.Book, error) {
+func (r *BookRepositoryPostgres) GetByID(ctx context.Context, id string) (domain.Book, error) {
 	var book domain.Book
+	var metadataJson []byte
 
 	bookId, err := strconv.Atoi(id)
 	if err != nil {
 		return book, errors.Join(domain.ErrRepositoryError, err)
 	}
-	if err := b.pool.QueryRow(ctx, querySelectBookByID, bookId).Scan(&book.ID, &book.Title, &book.Author); err != nil {
+	if err := r.pool.QueryRow(ctx, querySelectBookByID, bookId).
+		Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return book, domain.ErrBookNotFound
 		}
 		return book, errors.Join(domain.ErrRepositoryError, err)
 	}
+
+	if metadataJson != nil {
+		var metadata map[string]any
+		if err := json.Unmarshal(metadataJson, &metadata); err != nil {
+			return book, errors.Join(domain.ErrRepositoryError, err)
+		}
+		book.Metadata = metadata
+	} else {
+		book.Metadata = nil
+	}
+
 	return book, nil
 }
 
-func (b *BookRepositoryPostgres) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
+func (r *BookRepositoryPostgres) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
 	var book domain.Book
-	err := b.pool.QueryRow(ctx, querySelectBookByTitleAndAuthor, title, author).Scan(&book.ID, &book.Title, &book.Author)
-	if err != nil {
+	var metadataJson []byte
+
+	if err := r.pool.QueryRow(ctx, querySelectBookByTitleAndAuthor, title, author).
+		Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return book, domain.ErrBookNotFound
 		}
 		return book, errors.Join(domain.ErrRepositoryError, err)
 	}
 
+	if metadataJson != nil {
+		var metadata map[string]any
+		if err := json.Unmarshal(metadataJson, &metadata); err != nil {
+			return book, errors.Join(domain.ErrRepositoryError, err)
+		}
+		book.Metadata = metadata
+	} else {
+		book.Metadata = nil
+	}
+
 	return book, nil
+}
+
+func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, filePath string) (domain.Book, error) {
+	return parseEpubFromFile(filePath)
 }

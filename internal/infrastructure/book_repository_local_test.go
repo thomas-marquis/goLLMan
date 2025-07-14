@@ -40,7 +40,7 @@ func TestBookRepositoryLocal_Add(t *testing.T) {
 	repo := infrastructure.NewBookRepositoryLocal(filePath)
 
 	// When
-	newBook, err := repo.Add(context.TODO(), "New Book", "New Author")
+	newBook, err := repo.Add(context.TODO(), "New Book", "New Author", nil)
 
 	// Then
 	assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestBookRepositoryLocal_Add_ShouldIncrementId(t *testing.T) {
 	repo := infrastructure.NewBookRepositoryLocal(filePath)
 
 	// When
-	newBook, err := repo.Add(context.TODO(), "New Book", "New Author")
+	newBook, err := repo.Add(context.TODO(), "New Book", "New Author", nil)
 
 	// Then
 	assert.NoError(t, err)

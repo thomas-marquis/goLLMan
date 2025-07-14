@@ -10,6 +10,8 @@ import (
 	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/docstore"
+	"github.com/thomas-marquis/goLLMan/agent/loader"
+	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure"
 	"github.com/thomas-marquis/goLLMan/pkg"
@@ -114,7 +116,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		bookRepository = infrastructure.NewBookRepository(pool)
+		bookRepository = infrastructure.NewBookRepositoryPostgres(pool)
 
 		vectorStore, err = docstore.NewPgVectorStore(g, pool, bookRepository, embeddingModel)
 		if err != nil {
@@ -141,7 +143,11 @@ func initConfig() {
 		DockStoreImpl: viper.GetString("agent.docstore"),
 	}
 
-	mainAgent = agent.New(g, agentConfig, nil, d)
+	docLoader := loader.NewLocalEpubLoader(bookRepository)
+
+	sessionStore := in_memory.NewSessionStore()
+
+	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, vectorStore)
 
 }
 

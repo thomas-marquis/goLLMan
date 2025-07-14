@@ -7,43 +7,26 @@ import (
 	"github.com/timsims/pamphlet"
 )
 
-type chapterContent struct {
-	Title   string
-	Content string
-}
-
 type LocalEpubLoader struct {
-	filePath   string
 	repository domain.BookRepository
 }
 
 var _ BookLoader = (*LocalEpubLoader)(nil)
 
-func NewLocalEpubLoader(path string, repository domain.BookRepository) *LocalEpubLoader {
-	return &LocalEpubLoader{path, repository}
+func NewLocalEpubLoader(repository domain.BookRepository) *LocalEpubLoader {
+	return &LocalEpubLoader{repository}
 }
 
-func (l *LocalEpubLoader) List() ([]domain.Book, error) {
-	parser, err := pamphlet.Open(l.filePath)
-	if err != nil {
-		return nil, fmt.Errorf("error opening epub at %s: %w", l.filePath, err)
+func (l *LocalEpubLoader) Load(book domain.Book) ([]*ai.Document, error) {
+	filePath, ok := book.Metadata["local_epub_filepath"].(string)
+	if !ok || filePath == "" {
+		return nil, fmt.Errorf("book %s by %s does not have a valid local epub filepath",
+			book.Title, book.Author)
 	}
 
-	book := parser.GetBook()
-	if book == nil {
-		return nil, fmt.Errorf("no book found in epub at %s", l.filePath)
-	}
-
-	return []domain.Book{{
-		Title:  book.Title,
-		Author: book.Author,
-	}}, nil
-}
-
-func (l *LocalEpubLoader) Load(bookId string) (domain.Book, []*ai.Document, error) {
-	parser, err := pamphlet.Open(l.filePath)
+	parser, err := pamphlet.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("error opening pdf at %s: %w", l.filePath, err)
+		return nil, fmt.Errorf("error opening pdf at %s: %w", filePath, err)
 	}
 
 	parsedBook := parser.GetBook()
@@ -56,7 +39,8 @@ func (l *LocalEpubLoader) Load(bookId string) (domain.Book, []*ai.Document, erro
 			return nil, fmt.Errorf("failed to get content for chapter %d: %w", i+1, err)
 		}
 		documents[i] = ai.DocumentFromText(chapContent, map[string]any{
-			"title": chapter.Title,
+			"title":   chapter.Title,
+			"book_id": book.ID,
 		})
 	}
 

@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/thomas-marquis/goLLMan/agent"
-	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 )
 
 const (
@@ -24,15 +22,7 @@ This process may take some time and it usually costs a little if you use a cloud
 The indexing doesn't reindex existing documents.
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			store := in_memory.NewSessionStore()
-
-			a := agent.New(agentConfig, store)
-			if err := a.Bootstrap(); err != nil {
-				cmd.Println("Error bootstrapping agent:", err)
-				return
-			}
-
-			if err := a.Index(); err != nil {
+			if err := mainAgent.Index(); err != nil {
 				cmd.Println("an error occurred during indexing:", err)
 				return
 			}
