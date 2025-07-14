@@ -73,6 +73,10 @@ func init() {
 		"document store implementation to use (local, pgvector)")
 	viper.BindPFlag("agent.docstore", rootCmd.PersistentFlags().Lookup("docstore"))
 
+	rootCmd.PersistentFlags().BoolP("disable-ai", "d", false,
+		"Disable AI and use generic fake response instead (for testing purpose).")
+	viper.BindPFlag("agent.disableAI", rootCmd.PersistentFlags().Lookup("disable-ai"))
+
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
 }
@@ -138,9 +142,11 @@ func initConfig() {
 	}
 
 	agentConfig = agent.Config{
-		SessionID:     viper.GetString("session"),
-		Verbose:       viper.GetBool("verbose"),
-		DockStoreImpl: viper.GetString("agent.docstore"),
+		SessionID:           viper.GetString("session"),
+		Verbose:             viper.GetBool("verbose"),
+		DockStoreImpl:       viper.GetString("agent.docstore"),
+		DisableAI:           viper.GetBool("agent.disableAI"),
+		SessionMessageLimit: viper.GetInt("agent.sessionMessageLimit"),
 	}
 
 	docLoader := loader.NewLocalEpubLoader(bookRepository)

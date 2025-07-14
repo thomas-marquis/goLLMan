@@ -49,6 +49,7 @@ func New(
 	a.indexerFlow = genkit.DefineFlow(a.g, "indexerFlow", a.indexerFlowHandler)
 
 	if cfg.DisableAI {
+		pkg.Logger.Println("AI disabled")
 		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
 	} else {
 		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)

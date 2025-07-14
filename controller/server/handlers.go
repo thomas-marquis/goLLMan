@@ -31,7 +31,7 @@ func (s *Server) GetPageHandler(r *gin.Engine) {
 
 func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 	r.POST("/messages", func(c *gin.Context) {
-		pkg.Logger.Println("MessageBySessionID received")
+		pkg.Logger.Println("Message received")
 
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
@@ -48,9 +48,14 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 
 		// TODO: inject the agent instead the flow
 		// TODO: pass the session ID to the agent class
-		_, err = s.flow.Run(c.Request.Context(), agent.ChatbotInput{Question: formData.Question, Session: sess.ID()})
-		if err != nil {
-			pkg.Logger.Printf("EFailed to generate response from flow: %s\n", err)
+		// TODO: dynamically set the book ID based on the current book context
+		in := agent.ChatbotInput{
+			Question: formData.Question,
+			Session:  sess.ID(),
+			BookID:   "1",
+		}
+		if _, err = s.flow.Run(c.Request.Context(), in); err != nil {
+			pkg.Logger.Printf("Failed to generate response from flow: %s\n", err)
 			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 			return
 		}
@@ -86,7 +91,6 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 		}
 
 		go func() {
-			pkg.Logger.Println("Catch up previous messages:")
 			for _, m := range sess.GetMessages() {
 				pkg.Logger.Println(pkg.ContentToText(m.Content))
 				clientMessageChan <- m
@@ -101,8 +105,7 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 					sendToStream(c, components.NotThinking())
 				}
 
-				_, err := convertToHTML(pkg.ContentToText(msg.Content))
-				if err != nil {
+				if _, err := convertToHTML(pkg.ContentToText(msg.Content)); err != nil {
 					pkg.Logger.Printf("Error converting content to HTML: %s\n", err)
 					c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
 					return false

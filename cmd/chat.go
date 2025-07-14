@@ -15,7 +15,6 @@ import (
 var (
 	controllerType string
 	sessionID      string
-	disableAI      bool
 
 	chatCmd = &cobra.Command{
 		Use:   "chat",
@@ -32,7 +31,6 @@ var (
 			store := in_memory.NewSessionStore()
 
 			agentConfig.SessionID = viper.GetString("session")
-			agentConfig.DisableAI = disableAI
 			agentConfig.SessionMessageLimit = 6
 
 			var ctrl controller.Controller
@@ -58,9 +56,6 @@ func init() {
 	chatCmd.Flags().StringVarP(&controllerType, "interface", "i", "cmd",
 		"Interface type to use for the chat session. Options: cmd, http.")
 
-	chatCmd.Flags().StringVarP(&sessionID, "session", "s", "",
+	chatCmd.Flags().StringVarP(&sessionID, "session", "S", "",
 		"Session ID to use for the chat session. If not provided, a new session will be created.")
-
-	chatCmd.Flags().BoolVarP(&disableAI, "disable-ai", "d", false,
-		"Disable AI and use generic fake response instead (for testing purpose).")
 }

@@ -13,8 +13,13 @@ import (
 )
 
 const (
-	queryInsertBookIndex = "INSERT INTO book_index (book_id, content, embedding) VALUES ($1, $2, $3)"
-	querySearchNearest   = "SELECT book_id, content FROM book_index WHERE embedding <#> $1"
+	queryInsertBookIndex       = "INSERT INTO book_index (book_id, content, embedding) VALUES ($1, $2, $3)"
+	querySearchNearestByBookId = `
+SELECT content
+FROM book_index bi
+WHERE book_id = $1
+ORDER BY embedding <=> $2
+LIMIT $3`
 )
 
 type PgVectorStore struct {
@@ -42,12 +47,40 @@ func NewPgVectorStore(
 
 	splitter := makeTextSplitter()
 
-	return &PgVectorStore{
+	s := &PgVectorStore{
 		pool:       pool,
 		splitter:   splitter,
 		embedder:   embedder,
 		repository: repository,
-	}, nil
+	}
+
+	genkit.DefineRetriever(g, "gollman", "pgvector",
+		func(ctx context.Context, req *ai.RetrieverRequest) (*ai.RetrieverResponse, error) {
+			book_id, ok := req.Query.Metadata["book_id"].(string)
+			if !ok {
+				return nil, fmt.Errorf("book not found in query metadata")
+			}
+			limit, ok := req.Query.Metadata["limit"].(int)
+			if !ok || limit <= 0 {
+				limit = 3
+				pkg.Logger.Printf("limit not found in query metadata, applying default limit: %d", limit)
+			}
+			query := pkg.ContentToText(req.Query.Content)
+
+			book, err := s.repository.GetByID(ctx, book_id)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve book by ID %s: %w", book_id, err)
+			}
+
+			docs, err := s.Retrieve(ctx, book, query, limit)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve documents: %w", err)
+			}
+
+			return &ai.RetrieverResponse{Documents: docs}, nil
+		})
+
+	return s, nil
 }
 
 func (s *PgVectorStore) Index(ctx context.Context, book domain.Book, docs []*ai.Document) error {
@@ -103,6 +136,30 @@ func (s *PgVectorStore) Index(ctx context.Context, book domain.Book, docs []*ai.
 }
 
 func (s *PgVectorStore) Retrieve(ctx context.Context, book domain.Book, query string, limit int) ([]*ai.Document, error) {
-	//TODO implement me
-	panic("implement me")
+	eReq := &ai.EmbedRequest{
+		Input: []*ai.Document{ai.DocumentFromText(query, nil)},
+	}
+	eRes, err := s.embedder.Embed(ctx, eReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to embed query: %w", err)
+	}
+	vec := eRes.Embeddings[0].Embedding
+
+	rows, err := s.pool.Query(ctx, querySearchNearestByBookId, book.ID, pgvector.NewVector(vec), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute search query: %w", err)
+	}
+
+	documents := make([]*ai.Document, 0, limit)
+	for rows.Next() {
+		var content string
+		if err := rows.Scan(&content); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		doc := ai.DocumentFromText(content, map[string]any{"book_id": book.ID})
+		documents = append(documents, doc)
+	}
+
+	return documents, nil
 }

@@ -49,7 +49,7 @@ func New(opts ...Option) *Session {
 	s := &Session{
 		messages:         make([]*ai.Message, 0),
 		hasSystemMessage: false,
-		messageChan:      make(chan *ai.Message, 1),
+		messageChan:      make(chan *ai.Message, 10),
 	}
 
 	for _, opt := range opts {
