@@ -1,17 +1,25 @@
 package components
 
+import "fmt"
+
 func getMessageStyle(role string) (string, string, string) {
     var messageClass, bgColor, alignmentClass string
     if role == "user" {
         messageClass = "bg-primary-200"
         bgColor = "bg-blue-500"
-        alignmentClass = "flex justify-end"
+        alignmentClass = "flex justify-end items-end"
     } else if role == "model" {
         messageClass = "bg-primary-500 text-white"
         bgColor = "bg-green-500"
-        alignmentClass = "flex justify-start"
+        alignmentClass = "flex justify-start items-start"
     }
     return messageClass, bgColor, alignmentClass
+}
+
+templ messageSideIcon(label, bgColor string, lgPos int) {
+    <div class={"w-8", "h-8", "rounded-full", bgColor, "flex", "items-center", "justify-center", "text-white", "order-1", fmt.Sprintf("lg:order-%d", lgPos)}>
+        {label}
+    </div>
 }
 
 templ Message(role, content string) {
@@ -22,21 +30,17 @@ templ Message(role, content string) {
     }
 
     <div class={alignmentClass}>
-        <div class={"flex", "items-start", "gap-2.5"}>
+        <div class={alignmentClass, "flex-col", "lg:flex-row", "lg:items-start", "gap-2.5"}>
             if role == "user" {
-                <div class={"w-8", "h-8", "rounded-full", bgColor, "flex", "items-center", "justify-center", "text-white"}>
-                    Me
-                </div>
+                @messageSideIcon("Me", bgColor, 1)
             }
-            <div class={"flex", "flex-col", "max-w-4xl"}>
+            <div class={"flex", "flex-col", "max-w-4xl", "order-2"}>
                 <div class={messageClass, "p-3", "rounded-lg"}>
                     @templ.Raw(messageContent)
                 </div>
             </div>
             if role == "model" {
-                <div class={"w-8", "h-8", "rounded-full", bgColor, "flex", "items-center", "justify-center", "text-white"}>
-                    AI
-                </div>
+                @messageSideIcon("AI", bgColor, 3)
             }
         </div>
     </div>
