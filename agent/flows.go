@@ -158,10 +158,11 @@ func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (stri
 }
 
 func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Session, error) {
-	sess := session.New(
-		session.WithID(sessionID),
-		session.WithLimit(a.cfg.SessionMessageLimit),
-	)
+	sess, err := a.sessionStore.NewSession(ctx, session.WithLimit(a.cfg.SessionMessageLimit))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new session: %w", err)
+	}
+
 	systemMsg := ai.NewMessage(
 		ai.RoleSystem, nil,
 		pkg.ContentFromText(systemPrompt)...,

@@ -19,17 +19,26 @@ func NewSessionStore() *InMemorySessionStore {
 	}
 }
 
-func (i *InMemorySessionStore) Save(ctx context.Context, sess *session.Session) error {
-	i.Lock()
-	defer i.Unlock()
-	i.sessions[sess.ID()] = sess
+func (s *InMemorySessionStore) NewSession(ctx context.Context, opts ...session.Option) (*session.Session, error) {
+	s.Lock()
+	defer s.Unlock()
+	opts = append([]session.Option{session.WithID(session.GenerateID())}, opts...)
+	sess := session.New(opts...)
+	s.sessions[sess.ID()] = sess
+	return sess, nil
+}
+
+func (s *InMemorySessionStore) Save(ctx context.Context, sess *session.Session) error {
+	s.Lock()
+	defer s.Unlock()
+	s.sessions[sess.ID()] = sess
 	return nil
 }
 
-func (i *InMemorySessionStore) GetByID(ctx context.Context, id string) (*session.Session, error) {
-	i.Lock()
-	defer i.Unlock()
-	sess, ok := i.sessions[id]
+func (s *InMemorySessionStore) GetByID(ctx context.Context, id string) (*session.Session, error) {
+	s.Lock()
+	defer s.Unlock()
+	sess, ok := s.sessions[id]
 	if !ok {
 		return nil, session.ErrSessionNotFound
 	}

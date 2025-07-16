@@ -67,6 +67,13 @@ func (s *Session) ID() string {
 	return s.id
 }
 
+func (s *Session) Limit() int {
+	if s.limited {
+		return s.limit
+	}
+	return 0 // 0 indicates no limit
+}
+
 func (s *Session) AddMessage(msg *ai.Message) error {
 	if msg.Role == ai.RoleSystem {
 		if s.hasSystemMessage {

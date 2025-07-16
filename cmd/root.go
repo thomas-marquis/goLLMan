@@ -11,6 +11,7 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/docstore"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
+	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure"
@@ -34,6 +35,7 @@ var (
 	bookRepository domain.BookRepository
 	vectorStore    docstore.DocStore
 	mainAgent      *agent.Agent
+	sessionStore   session.Store
 
 	rootCmd = &cobra.Command{
 		Use:   "goLLMan",
@@ -151,7 +153,7 @@ func initConfig() {
 
 	docLoader := loader.NewLocalEpubLoader(bookRepository)
 
-	sessionStore := in_memory.NewSessionStore()
+	sessionStore = in_memory.NewSessionStore()
 
 	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, vectorStore)
 

@@ -45,7 +45,7 @@ templ Page() {
                     id="messages"
                     sse-connect="/stream"
                     sse-swap="message"
-                    hx-swap="beforeend show:bottom"
+                    hx-swap="beforeend scroll:#messages-container:bottom"
                     class="space-y-4">
                     <!-- Messages will be loaded here -->
                 </div>

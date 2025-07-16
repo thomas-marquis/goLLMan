@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/spf13/viper"
-	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
 	"github.com/thomas-marquis/goLLMan/controller"
 	"github.com/thomas-marquis/goLLMan/controller/cmdline"
 	"github.com/thomas-marquis/goLLMan/controller/server"
@@ -28,8 +27,6 @@ var (
 				return
 			}
 
-			store := in_memory.NewSessionStore()
-
 			agentConfig.SessionID = viper.GetString("session")
 			agentConfig.SessionMessageLimit = 6
 
@@ -38,7 +35,7 @@ var (
 			case controller.CtrlTypeCmdLine:
 				ctrl = cmdline.New(agentConfig, mainAgent.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentConfig, mainAgent.Flow(), store, mainAgent.G())
+				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G())
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)
