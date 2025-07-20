@@ -35,10 +35,14 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 			book.Title, book.Author, err)
 	}
 
-	_, err = genkit.Run(ctx, "indexDocuments", func() (any, error) {
+	if a.cfg.DisableAI {
+		pkg.Logger.Printf("Skipping indexing for book %s (%s) because AI is disabled\n", book.Title, book.Author)
+		return nil, nil
+	}
+
+	if _, err = genkit.Run(ctx, "indexDocuments", func() (any, error) {
 		return nil, a.docStore.Index(ctx, book, parts)
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, fmt.Errorf("failed to index documents: %w", err)
 	}
 

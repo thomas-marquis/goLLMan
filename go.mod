@@ -25,6 +25,7 @@ require (
 )
 
 replace github.com/thomas-marquis/genkit-mistral => ../../opensource/genkit-mistral
+replace github.com/timsims/pamphlet => ../../opensource/pamphlet
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
