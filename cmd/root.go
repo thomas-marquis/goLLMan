@@ -81,6 +81,7 @@ func init() {
 
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
+	rootCmd.AddCommand(genkitCmd)
 }
 
 func initConfig() {

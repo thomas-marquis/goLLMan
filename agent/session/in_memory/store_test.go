@@ -42,22 +42,6 @@ func Test_InMemorySessionStore_NewSession_WithOptions(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_InMemorySessionStore_SaveAndGetByID(t *testing.T) {
-	// Given
-	ctx := context.TODO()
-	store := in_memory.NewSessionStore()
-
-	sess := session.New(session.WithID("test-session"))
-
-	// When & Then
-	err := store.Save(ctx, sess)
-	assert.NoError(t, err)
-
-	retrievedSess, err := store.GetByID(ctx, "test-session")
-	assert.NoError(t, err)
-	assert.Equal(t, sess.ID(), retrievedSess.ID())
-}
-
 func Test_InMemorySessionStore_GetByID_NotFound(t *testing.T) {
 	// Given
 	ctx := context.TODO()

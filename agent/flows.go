@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	systemPrompt = `
-You are a helpful assistant and you answer questions.
-You have access to a set of documents. Use them to answer the user's question.
-Don't make up answers, only use the documents provided. If you don't know the answer say it.`
+	systemPrompt = `You are an assistant designed to help users by answering their questions using information from a specific book.
+Some of extract of this book will be provided with the users question or message. Before responding, search the book
+for relevant information. If the answer is not found in the book, politely state that the information is not available
+in the current source. Make sure to use only the information from the book to formulate your responses. Be concise and
+accurate with your answer. Use the same language as the user.  The book information aren't send to you by the user
+himself, so don't talk him about that. Just summarize and answer the question.`
 )
 
 func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, error) {
@@ -82,9 +84,6 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 		if err := sess.AddMessage(userMsg); err != nil {
 			return nil, fmt.Errorf("failed to add user message to session: %w", err)
 		}
-		if err := a.sessionStore.Save(ctx, sess); err != nil {
-			return nil, fmt.Errorf("failed to save session: %w", err)
-		}
 
 		return prevMsg, nil
 	})
@@ -92,34 +91,28 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 		return "", err
 	}
 
+	var _ = prevMsg
+
 	resp, err := genkit.Run(ctx, "generateResponse", func() (*ai.ModelResponse, error) {
 		return genkit.Generate(ctx, a.g,
+			ai.WithSystem(systemPrompt),
 			ai.WithMessages(prevMsg...),
 			ai.WithPrompt(input.Question),
 			ai.WithDocs(docs...),
-			ai.WithOutputInstructions("Please answer in the same language as the question, and be concise."),
 		)
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to generate response: %w", err)
 	}
 
-	_, err = genkit.Run(ctx, "updateSessionAfter", func() (any, error) {
+	return genkit.Run(ctx, "updateSessionAfter", func() (string, error) {
 		assistantMsg := ai.NewMessage(resp.Message.Role, resp.Message.Metadata, resp.Message.Content...)
 
 		if err := sess.AddMessage(assistantMsg); err != nil {
-			return nil, fmt.Errorf("failed to add assitant message to session: %w", err)
+			return "", fmt.Errorf("failed to add assitant message to session: %w", err)
 		}
-		if err := a.sessionStore.Save(ctx, sess); err != nil {
-			return nil, fmt.Errorf("failed to save session: %w", err)
-		}
-		return nil, nil
+		return resp.Text(), nil
 	})
-	if err != nil {
-		return "", err
-	}
-
-	return resp.Text(), nil
 }
 
 func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (string, error) {
@@ -140,18 +133,12 @@ func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (stri
 	if err := sess.AddMessage(userMsg); err != nil {
 		return "", fmt.Errorf("failed to add user message to session: %w", err)
 	}
-	if err := a.sessionStore.Save(ctx, sess); err != nil {
-		return "", fmt.Errorf("failed to save session: %w", err)
-	}
 
 	time.Sleep(1 * time.Second) // Simulate processing delay
 	fakeResponse := fmt.Sprintf("I agree with you when you say:\n%s", input.Question)
 	fakeAiMsg := ai.NewModelMessage(pkg.ContentFromText(fakeResponse)...)
 	if err := sess.AddMessage(fakeAiMsg); err != nil {
 		return "", fmt.Errorf("failed to add fake AI message to session: %w", err)
-	}
-	if err := a.sessionStore.Save(ctx, sess); err != nil {
-		return "", fmt.Errorf("failed to save session with fake AI message: %w", err)
 	}
 
 	return fakeResponse, nil
@@ -161,16 +148,6 @@ func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Ses
 	sess, err := a.sessionStore.NewSession(ctx, session.WithLimit(a.cfg.SessionMessageLimit))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new session: %w", err)
-	}
-
-	systemMsg := ai.NewMessage(
-		ai.RoleSystem, nil,
-		pkg.ContentFromText(systemPrompt)...,
-	)
-	sess.AddMessage(systemMsg)
-
-	if err := a.sessionStore.Save(ctx, sess); err != nil {
-		return nil, fmt.Errorf("failed to save new session: %w", err)
 	}
 	return sess, nil
 }

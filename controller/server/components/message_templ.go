@@ -10,8 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "fmt"
 
-func getMessageStyle(role string) (string, string, string) {
-	var messageClass, bgColor, alignmentClass string
+func getMessageStyle(role string) (messageClass, bgColor, alignmentClass string) {
 	if role == "user" {
 		messageClass = "bg-primary-200"
 		bgColor = "bg-blue-500"
@@ -21,7 +20,7 @@ func getMessageStyle(role string) (string, string, string) {
 		bgColor = "bg-green-500"
 		alignmentClass = "flex justify-start items-start"
 	}
-	return messageClass, bgColor, alignmentClass
+	return
 }
 
 func messageSideIcon(label, bgColor string, lgPos int) templ.Component {
@@ -70,7 +69,7 @@ func messageSideIcon(label, bgColor string, lgPos int) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `controller/server/components/message.templ`, Line: 21, Col: 14}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `controller/server/components/message.templ`, Line: 20, Col: 14}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {

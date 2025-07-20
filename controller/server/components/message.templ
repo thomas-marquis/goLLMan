@@ -2,8 +2,7 @@ package components
 
 import "fmt"
 
-func getMessageStyle(role string) (string, string, string) {
-    var messageClass, bgColor, alignmentClass string
+func getMessageStyle(role string) (messageClass, bgColor, alignmentClass string) {
     if role == "user" {
         messageClass = "bg-primary-200"
         bgColor = "bg-blue-500"
@@ -13,7 +12,7 @@ func getMessageStyle(role string) (string, string, string) {
         bgColor = "bg-green-500"
         alignmentClass = "flex justify-start items-start"
     }
-    return messageClass, bgColor, alignmentClass
+    return
 }
 
 templ messageSideIcon(label, bgColor string, lgPos int) {

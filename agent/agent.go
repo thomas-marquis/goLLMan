@@ -14,8 +14,8 @@ import (
 
 type ChatbotInput struct {
 	Question string `json:"question"`
+	BookID   string `json:"book_id"`
 	Session  string `json:"session,omitempty"`
-	BookID   string `json:"book_id,omitempty"`
 }
 
 type Agent struct {

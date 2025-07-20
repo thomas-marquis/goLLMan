@@ -28,13 +28,6 @@ func (s *InMemorySessionStore) NewSession(ctx context.Context, opts ...session.O
 	return sess, nil
 }
 
-func (s *InMemorySessionStore) Save(ctx context.Context, sess *session.Session) error {
-	s.Lock()
-	defer s.Unlock()
-	s.sessions[sess.ID()] = sess
-	return nil
-}
-
 func (s *InMemorySessionStore) GetByID(ctx context.Context, id string) (*session.Session, error) {
 	s.Lock()
 	defer s.Unlock()

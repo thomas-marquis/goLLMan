@@ -13,9 +13,6 @@ func getSession(store session.Store, ctx context.Context) (*session.Session, err
 	if err != nil {
 		if errors.Is(err, session.ErrSessionNotFound) {
 			sess, err = store.NewSession(ctx, session.WithLimit(10), session.WithID(sessionID))
-			if err := store.Save(ctx, sess); err != nil {
-				return nil, err
-			}
 		} else {
 			return nil, err
 		}
