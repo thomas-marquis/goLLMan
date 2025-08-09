@@ -1,6 +1,8 @@
 package components
 
-templ Page() {
+import "github.com/thomas-marquis/goLLMan/controller/server/models"
+
+templ Page(books []models.Book) {
     <!DOCTYPE html>
     <html lang="fr" class="h-full">
     <head>
@@ -30,42 +32,52 @@ templ Page() {
         </script>
     </head>
     <body class="h-full bg-primary-100 dark:bg-gray-800">
-        <div class="container mx-auto p-4 h-full flex flex-col">
-            <header class="flex justify-between items-center p-4 bg-primary-500 text-white rounded-t-lg">
-                <h1 class="text-xl font-bold">Chat with GoLLM</h1>
-                <button id="theme-toggle" class="p-2 rounded-full bg-primary-300 text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                </button>
-            </header>
+        <!-- Header commun à toute la page -->
+        <header class="w-full bg-primary-500 text-white p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold">Chat with GoLLM</h1>
+            <button id="theme-toggle" class="p-2 rounded-full bg-primary-300 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </button>
+        </header>
 
-            <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 relative">
-                <div hx-ext="sse"
-                    id="messages"
-                    sse-connect="/stream"
-                    sse-swap="message"
-                    hx-swap="beforeend scroll:#messages-container:bottom"
-                    class="space-y-4">
-                    <!-- Messages will be loaded here -->
+        <!-- Conteneur principal avec menu latéral et contenu -->
+        <div class="flex h-[calc(100%-4rem)]">
+            <!-- Menu latéral -->
+            <aside class="w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-md">
+                @BooksList(books)
+            </aside>
+
+            <!-- Contenu principal -->
+            <main class="flex-1 flex flex-col h-full">
+                <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 relative">
+                    <div hx-ext="sse"
+                        id="messages"
+                        sse-connect="/stream"
+                        sse-swap="message"
+                        hx-swap="beforeend scroll:#messages-container:bottom"
+                        class="space-y-4">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                    @NotThinking()
                 </div>
-                @NotThinking()
-            </div>
 
-            <form class="flex p-4 bg-primary-100 dark:bg-gray-700 rounded-b-lg"
-                hx-post="/messages"
-                hx-trigger="submit"
-                hx-swap="none">
-                <input type="text"
-                    name="question"
-                    class="flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-300 dark:bg-gray-600 dark:text-white"
-                    placeholder="Ask anything"
-                    required>
-                <button type="submit"
-                    class="bg-primary-500 text-white p-2 rounded-r-lg hover:bg-primary-400">
-                    Send
-                </button>
-            </form>
+                <form class="flex p-4 bg-primary-100 dark:bg-gray-700"
+                    hx-post="/messages"
+                    hx-trigger="submit"
+                    hx-swap="none">
+                    <input type="text"
+                        name="question"
+                        class="flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-300 dark:bg-gray-600 dark:text-white"
+                        placeholder="Ask anything"
+                        required>
+                    <button type="submit"
+                        class="bg-primary-500 text-white p-2 rounded-r-lg hover:bg-primary-400">
+                        Send
+                    </button>
+                </form>
+            </main>
         </div>
 
         <script>

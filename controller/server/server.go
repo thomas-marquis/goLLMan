@@ -4,6 +4,7 @@ import (
 	"fmt"
 	genkit_core "github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -16,12 +17,13 @@ import (
 )
 
 type Server struct {
-	port         string
-	host         string
-	flow         *genkit_core.Flow[agent.ChatbotInput, string, struct{}]
-	cfg          agent.Config
-	sessionStore session.Store
-	router       *gin.Engine
+	port           string
+	host           string
+	flow           *genkit_core.Flow[agent.ChatbotInput, string, struct{}]
+	cfg            agent.Config
+	sessionStore   session.Store
+	router         *gin.Engine
+	bookRepository domain.BookRepository
 }
 
 func New(
@@ -29,6 +31,7 @@ func New(
 	flow *genkit_core.Flow[agent.ChatbotInput, string, struct{}],
 	sessionStore session.Store,
 	g *genkit.Genkit,
+	bookRepository domain.BookRepository,
 ) *Server {
 	router := gin.Default()
 	router.Static("/static", "./static")
@@ -44,12 +47,13 @@ func New(
 	go stream.listen()
 
 	s := &Server{
-		port:         "3400",
-		host:         "127.0.0.1",
-		flow:         flow,
-		cfg:          cfg,
-		router:       router,
-		sessionStore: sessionStore,
+		port:           "3400",
+		host:           "127.0.0.1",
+		flow:           flow,
+		cfg:            cfg,
+		router:         router,
+		sessionStore:   sessionStore,
+		bookRepository: bookRepository,
 	}
 
 	router.SetTrustedProxies(nil)
@@ -63,6 +67,7 @@ func New(
 	s.GetPageHandler(router)
 	s.SSEMessagesHandler(router, sessionStore, stream)
 	s.PostMessageHandler(router, sessionStore)
+	s.ToggleBookSelectionHandler(router)
 	s.FlowsHandlers(router, g)
 
 	return s

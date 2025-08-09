@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"github.com/a-h/templ"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -23,9 +24,23 @@ func (s *Server) FlowsHandlers(r *gin.Engine, g *genkit.Genkit) {
 	}
 }
 
+func (s *Server) ToggleBookSelectionHandler(r *gin.Engine) {
+	r.POST("/books/:id/toggle", func(c *gin.Context) {
+		// TODO: save change here
+		pkg.Logger.Printf("Toggle book selection: %s\n", c.Param("id"))
+		c.Status(http.StatusOK)
+	})
+}
+
 func (s *Server) GetPageHandler(r *gin.Engine) {
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "", components.Page())
+		books, err := s.bookRepository.List(context.Background())
+		if err != nil {
+			pkg.Logger.Printf("Failed to list books: %s\n", err)
+			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			return
+		}
+		c.HTML(http.StatusOK, "", components.Page(books))
 	})
 }
 

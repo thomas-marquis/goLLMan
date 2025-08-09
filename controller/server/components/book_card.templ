@@ -1,0 +1,47 @@
+package components
+
+import "github.com/thomas-marquis/goLLMan/internal/domain"
+
+
+
+templ BookCard(book domain.Book) {
+    <div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-primary-100 dark:hover:bg-gray-700 transition-colors">
+        <div class="flex items-center mr-2">
+            <input 
+                type="checkbox"
+                id={"book-" + book.ID}
+                checked?={book.Selected}
+                class="w-4 h-4 text-primary-500 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-400 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                hx-post={"/books/" + book.ID + "/toggle"}
+                hx-swap="none"
+            />
+        </div>
+        <div class="flex-1">
+            <h3 class="text-sm font-medium text-gray-900 dark:text-white">{book.Title}</h3>
+            <div class="flex items-center mt-1">
+                // if book.Status == StatusIndexing {
+                //    <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Indexing</span>
+                //} else {
+                //    <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">Indexed</span>
+                //}
+
+                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">Indexed</span>
+            </div>
+        </div>
+    </div>
+}
+
+templ BooksList(books []models.Book) {
+    <div class="h-full overflow-y-auto">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Livres</h2>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            for _, book := range books {
+                @BookCard(book)
+            }
+        </div>
+    </div>
+}
+
+
