@@ -71,7 +71,8 @@ func (a *Agent) G() *genkit.Genkit {
 // Index starts the indexing process for the agent.
 func (a *Agent) Index() error {
 	ctx := context.Background()
-	filePath := "documents/effectiveconcurrencyingo.epub"
+	//filePath := "documents/effectiveconcurrencyingo.epub"
+	filePath := "documents/votreidee.epub"
 	parsedBook, err := a.bookRepository.ReadFromFile(ctx, filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read parsedBook from file %s: %w", filePath, err)
