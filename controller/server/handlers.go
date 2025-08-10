@@ -143,7 +143,19 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 }
 
 func (s *Server) UploadBookHandler(r *gin.Engine) {
-	r.PUT("/books/upload", func(c *gin.Context) {
+	r.GET("books/upload/open", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "", components.UploadEpubModal())
+	})
+
+	r.GET("books/upload/cancel", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "", components.UploadEpubModalOff())
+	})
+
+	r.POST("/books/upload", func(c *gin.Context) {
+		defer func() {
+			c.HTML(http.StatusOK, "", components.UploadEpubModalOff())
+		}()
+
 		// Get the file from the request
 		file, err := c.FormFile("epub-file")
 		if err != nil {
@@ -204,8 +216,7 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		}
 
 		os.Remove(tempFilePath)
-
-		components.SuccessMessage("Book uploaded successfully", addedBook).Render(c.Request.Context(), c.Writer)
+		c.HTML(http.StatusOK, "", components.SuccessMessage("Book uploaded successfully", addedBook))
 	})
 }
 

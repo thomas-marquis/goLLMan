@@ -29,7 +29,36 @@ func UploadEpubModal() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"upload-epub-modal\" class=\"hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4\"><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6\"><div class=\"flex justify-between items-center mb-4\"><h3 class=\"text-lg font-semibold text-gray-900 dark:text-white\">Upload EPUB Book</h3><button type=\"button\" class=\"text-gray-400 hover:text-gray-500 dark:hover:text-gray-300\" onclick=\"document.getElementById('upload-epub-modal').classList.add('hidden')\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></button></div><form class=\"space-y-4\" hx-encoding=\"multipart/form-data\" hx-post=\"/books/upload\" hx-swap=\"none\" hx-on::after-request=\"document.getElementById('upload-epub-modal').classList.add('hidden'); document.getElementById('epub-file').value = '';\"><div class=\"border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center\"><label for=\"epub-file\" class=\"cursor-pointer\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"mx-auto h-12 w-12 text-gray-400\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12\"></path></svg><p class=\"mt-2 text-sm text-gray-600 dark:text-gray-400\">Click to select or drag and drop</p><p class=\"text-xs text-gray-500 dark:text-gray-500\">EPUB files only</p><input id=\"epub-file\" name=\"epub-file\" type=\"file\" accept=\".epub\" class=\"hidden\" required></label></div><div id=\"file-name\" class=\"text-sm text-gray-600 dark:text-gray-400 hidden\"><span>Selected file: </span> <span id=\"selected-file-name\"></span></div><div class=\"flex justify-end space-x-3\"><button type=\"button\" class=\"px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors\" @click=\"open = false\">Cancel</button> <button type=\"submit\" class=\"px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-400 transition-colors\">Upload</button></div></form></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"upload-epub-modal\" hx-swap-oob=\"true\" class=\"fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4\"><div class=\"bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6\"><div class=\"flex justify-between items-center mb-4\"><h3 class=\"text-lg font-semibold text-gray-900 dark:text-white\">Upload EPUB Book</h3><button type=\"button\" class=\"text-gray-400 hover:text-gray-500 dark:hover:text-gray-300\" hx-get=\"/books/upload/cancel\" hx-swap=\"none\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></button></div><form id=\"form-upload\" class=\"space-y-4\" hx-encoding=\"multipart/form-data\" hx-post=\"/books/upload\" hx-swap=\"none\"><div class=\"border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center\"><label for=\"epub-file\" class=\"cursor-pointer\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"mx-auto h-12 w-12 text-gray-400\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12\"></path></svg><p class=\"mt-2 text-sm text-gray-600 dark:text-gray-400\">Click to select or drag and drop</p><p class=\"text-xs text-gray-500 dark:text-gray-500\">EPUB files only</p><input id=\"epub-file\" name=\"epub-file\" type=\"file\" accept=\".epub\" class=\"hidden\" required></label></div><div id=\"file-name\" class=\"text-sm text-gray-600 dark:text-gray-400 hidden\"><span>Selected file: </span> <span id=\"selected-file-name\"></span></div><div class=\"flex justify-end space-x-3\"><button type=\"button\" class=\"px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors\" hx-get=\"/books/upload/cancel\">Cancel</button> <button type=\"submit\" class=\"px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-400 transition-colors\">Upload</button></div><progress id=\"progress-upload\" value=\"0\" max=\"100\"></progress></form></div></div><script>\n        htmx.on('#form-upload', 'htmx:xhr:progress', function(evt) {\n          htmx.find('#progress-upload').setAttribute('value', evt.detail.loaded/evt.detail.total * 100)\n        });\n    </script>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func UploadEpubModalOff() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div id=\"upload-epub-modal\" hx-swap-oob=\"true\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

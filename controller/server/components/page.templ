@@ -43,10 +43,7 @@ templ Page(initialBooks []domain.Book) {
             });
             darkMode && document.documentElement.classList.add('dark');
         "
-        @openuploadmodal.window="$root.querySelector('#upload-epub-modal').__x.$data.open = true"
-        @htmx:beforeRequest.window="isThinking = true"
-        @htmx:afterRequest.window="isThinking = false">
-
+    >
         <header class="w-full bg-primary-500 text-white p-4 flex justify-between items-center">
             <h1 class="text-xl font-bold">Chat with GoLLM</h1>
             <button class="p-2 rounded-full bg-primary-300 text-white" @click="darkMode = !darkMode">
@@ -56,8 +53,7 @@ templ Page(initialBooks []domain.Book) {
             </button>
         </header>
 
-        <!-- Rendre la modal disponible à l'échelle de la page -->
-        @UploadEpubModal()
+        @UploadEpubModalOff()
 
         <div class="flex h-[calc(100%-4rem)]">
             <aside class="w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-md">

@@ -1,14 +1,18 @@
 package components
 
 templ UploadEpubModal() {
-    <div id="upload-epub-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div id="upload-epub-modal"
+        hx-swap-oob="true"
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    >
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload EPUB Book</h3>
                 <button 
                     type="button" 
                     class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                    onclick="document.getElementById('upload-epub-modal').classList.add('hidden')"
+                    hx-get="/books/upload/cancel"
+                    hx-swap="none"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -16,13 +20,13 @@ templ UploadEpubModal() {
                 </button>
             </div>
 
-            <form 
+            <form
+                id="form-upload"
                 class="space-y-4"
                 hx-encoding="multipart/form-data"
                 hx-post="/books/upload"
                 hx-swap="none"
-                hx-on::after-request="document.getElementById('upload-epub-modal').classList.add('hidden'); document.getElementById('epub-file').value = '';">
-
+            >
                 <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                     <label for="epub-file" class="cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,7 +54,7 @@ templ UploadEpubModal() {
                     <button 
                         type="button" 
                         class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors"
-                        @click="open = false"
+                        hx-get="/books/upload/cancel"
                     >
                         Cancel
                     </button>
@@ -63,5 +67,10 @@ templ UploadEpubModal() {
                 </div>
             </form>
         </div>
+    </div>
+}
+
+templ UploadEpubModalOff() {
+    <div id="upload-epub-modal" hx-swap-oob="true">
     </div>
 }

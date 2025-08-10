@@ -35,11 +35,12 @@ templ bookCard(book domain.Book) {
 templ BooksLibrary(books []domain.Book) {
     <div class="h-full overflow-y-auto">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Livres</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Library</h2>
             <button
                 type="button"
                 class="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-400 transition-colors text-sm font-medium flex items-center"
-                @click="$dispatch('openuploadmodal')"
+                hx-get="books/upload/open"
+                hx-swap="none"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
