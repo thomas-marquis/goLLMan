@@ -9,6 +9,7 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -27,8 +28,12 @@ var (
 	cfgFile     string
 	agentConfig agent.Config
 
-	mainAgent    *agent.Agent
-	sessionStore session.Store
+	db *gorm.DB
+
+	mainAgent       *agent.Agent
+	sessionStore    session.Store
+	bookRepository  domain.BookRepository
+	bookVectorStore domain.BookVectorStore
 
 	rootCmd = &cobra.Command{
 		Use:   "goLLMan",
@@ -104,13 +109,15 @@ func initConfig() {
 		Port:     viper.GetString("postgres.port"),
 	}
 
-	db, err := initPgGormDB(p)
+	db, err = initPgGormDB(p)
 	if err != nil {
 		rootCmd.Printf("Error initializing PostgreSQL db: %s\n", err)
 		os.Exit(1)
 	}
 
-	bookRepository := infrastructure.NewBookRepositoryPostgres(db)
+	bookRepoImpl := infrastructure.NewBookRepositoryPostgres(db)
+	bookVectorStore = bookRepoImpl
+	bookRepository = bookRepoImpl
 
 	agentConfig = agent.Config{
 		SessionID:           viper.GetString("session"),
@@ -124,7 +131,7 @@ func initConfig() {
 
 	sessionStore = in_memory.NewSessionStore()
 
-	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, bookRepository)
+	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
 
 }
 

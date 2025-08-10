@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/a-h/templ"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -14,6 +15,9 @@ import (
 	"github.com/yuin/goldmark"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 func (s *Server) FlowsHandlers(r *gin.Engine, g *genkit.Genkit) {
@@ -135,6 +139,73 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 			}
 			return false
 		})
+	})
+}
+
+func (s *Server) UploadBookHandler(r *gin.Engine) {
+	r.PUT("/books/upload", func(c *gin.Context) {
+		// Get the file from the request
+		file, err := c.FormFile("epub-file")
+		if err != nil {
+			pkg.Logger.Printf("Error getting file sent by user: %v\n", err)
+			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("No file uploaded or invalid file"))
+			return
+		}
+
+		// Verify the file is an EPUB
+		if filepath.Ext(file.Filename) != ".epub" {
+			pkg.Logger.Printf("Invalid file type: %s\n", file.Filename)
+			c.HTML(http.StatusInternalServerError, "",
+				components.ErrorBanner("only EPUB files are allowed"))
+			return
+		}
+
+		// Create temporary directory if it doesn't exist
+		tempDir := "./tmp/uploads"
+		if err := os.MkdirAll(tempDir, 0755); err != nil {
+			pkg.Logger.Printf("Error creating directory: %v", err)
+			c.HTML(http.StatusInternalServerError, "",
+				components.ErrorBanner("Failed to prepare for upload"))
+			return
+		}
+
+		// Generate a unique filename to avoid collisions
+		timestamp := time.Now().Unix()
+		tempFilePath := fmt.Sprintf("%s/%d_%s", tempDir, timestamp, file.Filename)
+
+		// Save the file to disk
+		if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
+			pkg.Logger.Printf("Error saving file: %v", err)
+			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to save file"))
+			return
+		}
+
+		// Process the EPUB file
+		book, err := s.bookRepository.ReadFromFile(c.Request.Context(), tempFilePath)
+		if err != nil {
+			pkg.Logger.Printf("Error processing EPUB: %v", err)
+			os.Remove(tempFilePath)
+			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to process EPUB file"))
+			return
+		}
+
+		// Add the book to the repository
+		addedBook, err := s.bookRepository.Add(
+			c.Request.Context(),
+			book.Title,
+			book.Author,
+			book.Metadata,
+		)
+		if err != nil {
+			pkg.Logger.Printf("Error adding book to repository: %v", err)
+			os.Remove(tempFilePath)
+			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to add book to library"))
+			return
+		}
+
+		os.Remove(tempFilePath)
+
+		components.SuccessMessage("Book uploaded successfully", addedBook).Render(c.Request.Context(), c.Writer)
 	})
 }
 

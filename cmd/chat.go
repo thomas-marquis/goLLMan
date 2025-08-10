@@ -35,7 +35,7 @@ var (
 			case controller.CtrlTypeCmdLine:
 				ctrl = cmdline.New(agentConfig, mainAgent.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G())
+				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G(), bookRepository)
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)

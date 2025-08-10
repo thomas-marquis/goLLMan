@@ -16,7 +16,9 @@
 coverage.*
 *.coverprofile
 profile.cov
-
+# Ignore les fichiers temporaires téléchargés
+tmp/uploads/*
+!tmp/uploads/.gitkeep
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

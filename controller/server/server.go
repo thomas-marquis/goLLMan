@@ -68,6 +68,7 @@ func New(
 	s.SSEMessagesHandler(router, sessionStore, stream)
 	s.PostMessageHandler(router, sessionStore)
 	s.ToggleBookSelectionHandler(router)
+	s.UploadBookHandler(router)
 	s.FlowsHandlers(router, g)
 
 	return s

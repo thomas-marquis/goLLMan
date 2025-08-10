@@ -4,6 +4,7 @@ type Status string
 
 const (
 	StatusUnknown  Status = ""
+	StatusNew      Status = "new"
 	StatusError    Status = "error"
 	StatusIndexed  Status = "indexed"
 	StatusIndexing Status = "indexing"
