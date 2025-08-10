@@ -3,9 +3,9 @@ package agent
 import (
 	"context"
 	"fmt"
+	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
-	"github.com/thomas-marquis/goLLMan/agent/docstore"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
@@ -19,14 +19,16 @@ type ChatbotInput struct {
 }
 
 type Agent struct {
-	g              *genkit.Genkit
-	indexerFlow    *core.Flow[domain.Book, any, struct{}]
-	chatbotFlow    *core.Flow[ChatbotInput, string, struct{}]
-	docLoader      loader.BookLoader
-	docStore       docstore.DocStore
-	sessionStore   session.Store
-	cfg            Config
-	bookRepository domain.BookRepository
+	g               *genkit.Genkit
+	indexerFlow     *core.Flow[domain.Book, any, struct{}]
+	chatbotFlow     *core.Flow[ChatbotInput, string, struct{}]
+	docLoader       loader.BookLoader
+	bookVectorStore domain.BookVectorStore
+	sessionStore    session.Store
+	cfg             Config
+	bookRepository  domain.BookRepository
+	retriever       ai.Retriever
+	embedder        ai.Embedder
 }
 
 func New(
@@ -35,24 +37,27 @@ func New(
 	store session.Store,
 	docLoader loader.BookLoader,
 	bookRepository domain.BookRepository,
-	vectorStore docstore.DocStore,
+	bookVectorStore domain.BookVectorStore,
 ) *Agent {
 	a := &Agent{
-		g:              g,
-		sessionStore:   store,
-		cfg:            cfg,
-		bookRepository: bookRepository,
-		docLoader:      docLoader,
-		docStore:       vectorStore,
+		g:               g,
+		sessionStore:    store,
+		cfg:             cfg,
+		bookRepository:  bookRepository,
+		docLoader:       docLoader,
+		bookVectorStore: bookVectorStore,
 	}
 
-	a.indexerFlow = genkit.DefineFlow(a.g, "indexerFlow", a.indexerFlowHandler)
+	a.indexerFlow = genkit.DefineFlow(g, "indexerFlow", a.indexerFlowHandler)
+	a.retriever = genkit.DefineRetriever(g, "gollman", "bookRetriever", a.bookRetrieverHandler)
+
+	a.embedder = genkit.LookupEmbedder(g, "mistral", "mistral-embed")
 
 	if cfg.DisableAI {
 		pkg.Logger.Println("AI disabled")
-		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotFakeFlow", a.chatbotFakeHandle)
+		a.chatbotFlow = genkit.DefineFlow(g, "chatbotFakeFlow", a.chatbotFakeHandle)
 	} else {
-		a.chatbotFlow = genkit.DefineFlow(a.g, "chatbotAIFlow", a.chatbotAiFlowHandler)
+		a.chatbotFlow = genkit.DefineFlow(g, "chatbotAIFlow", a.chatbotAiFlowHandler)
 	}
 
 	return a

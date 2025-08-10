@@ -4,18 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/firebase/genkit/go/genkit"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	pgxvec "github.com/pgvector/pgvector-go/pgx"
 	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"github.com/thomas-marquis/goLLMan/agent"
-	"github.com/thomas-marquis/goLLMan/agent/docstore"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/agent/session/in_memory"
-	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure"
-	"github.com/thomas-marquis/goLLMan/pkg"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"os"
 	"time"
 
@@ -24,7 +20,6 @@ import (
 )
 
 const (
-	embeddingModel  = "mistral/mistral-embed"
 	completionModel = "mistral/mistral-small"
 )
 
@@ -32,10 +27,8 @@ var (
 	cfgFile     string
 	agentConfig agent.Config
 
-	bookRepository domain.BookRepository
-	vectorStore    docstore.DocStore
-	mainAgent      *agent.Agent
-	sessionStore   session.Store
+	mainAgent    *agent.Agent
+	sessionStore session.Store
 
 	rootCmd = &cobra.Command{
 		Use:   "goLLMan",
@@ -71,10 +64,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "enable verbose output")
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 
-	rootCmd.PersistentFlags().StringP("docstore", "s", "local",
-		"document store implementation to use (local, pgvector)")
-	viper.BindPFlag("agent.docstore", rootCmd.PersistentFlags().Lookup("docstore"))
-
 	rootCmd.PersistentFlags().BoolP("disable-ai", "d", false,
 		"Disable AI and use generic fake response instead (for testing purpose).")
 	viper.BindPFlag("agent.disableAI", rootCmd.PersistentFlags().Lookup("disable-ai"))
@@ -107,42 +96,21 @@ func initConfig() {
 		return
 	}
 
-	switch viper.GetString("agent.docstore") {
-	case docstore.DocStoreTypePgvector:
-		p := pgConfig{
-			DbName:   viper.GetString("postgres.database"),
-			User:     viper.GetString("postgres.user"),
-			Password: viper.GetString("postgres.password"),
-			Host:     viper.GetString("postgres.host"),
-			Port:     viper.GetString("postgres.port"),
-		}
-
-		pool, err := initPgPool(p)
-		if err != nil {
-			rootCmd.Printf("Error initializing PostgreSQL pool: %s\n", err)
-			os.Exit(1)
-		}
-
-		bookRepository = infrastructure.NewBookRepositoryPostgres(pool)
-
-		vectorStore, err = docstore.NewPgVectorStore(g, pool, bookRepository, embeddingModel)
-		if err != nil {
-			rootCmd.Printf("Error creating pgvector store: %s\n", err)
-			return
-		}
-
-	case docstore.DocStoreTypeLocal:
-		bookRepository = infrastructure.NewBookRepositoryLocal(viper.GetString("local.booksJsonPath"))
-		vectorStore, err = docstore.NewLocalVecStore(g, bookRepository, embeddingModel)
-		if err != nil {
-			rootCmd.Printf("Error creating local vector store: %s\n", err)
-			return
-		}
-
-	default:
-		rootCmd.Printf("Unknown document store implementation: %s\n", viper.GetString("agent.docstore"))
-		return
+	p := pgConfig{
+		DbName:   viper.GetString("postgres.database"),
+		User:     viper.GetString("postgres.user"),
+		Password: viper.GetString("postgres.password"),
+		Host:     viper.GetString("postgres.host"),
+		Port:     viper.GetString("postgres.port"),
 	}
+
+	db, err := initPgGormDB(p)
+	if err != nil {
+		rootCmd.Printf("Error initializing PostgreSQL db: %s\n", err)
+		os.Exit(1)
+	}
+
+	bookRepository := infrastructure.NewBookRepositoryPostgres(db)
 
 	agentConfig = agent.Config{
 		SessionID:           viper.GetString("session"),
@@ -156,7 +124,7 @@ func initConfig() {
 
 	sessionStore = in_memory.NewSessionStore()
 
-	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, vectorStore)
+	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, bookRepository)
 
 }
 
@@ -173,30 +141,16 @@ func initGenkit(ctx context.Context, mistralApiKey string, verbose bool, timeout
 	)
 }
 
-func initPgPool(cfg pgConfig) (*pgxpool.Pool, error) {
-	pgUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
+func initPgGormDB(cfg pgConfig) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DbName)
 
-	pgConfig, err := pgxpool.ParseConfig(pgUrl)
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN: dsn,
+	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse PostgreSQL URL: %w", err)
+		return nil, fmt.Errorf("failed to init postgres GORM instance: %w", err)
 	}
 
-	pgConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		return pgxvec.RegisterTypes(ctx, conn)
-	}
-
-	ctx := context.Background()
-	pool, err := pgxpool.NewWithConfig(ctx, pgConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
-	}
-	pkg.Logger.Println("Connected to PostgreSQL")
-
-	return pool, nil
+	return db, err
 }

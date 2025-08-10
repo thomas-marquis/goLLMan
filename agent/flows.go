@@ -40,13 +40,9 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 		return nil, nil
 	}
 
-	if _, err = genkit.Run(ctx, "indexDocuments", func() (any, error) {
-		return nil, a.docStore.Index(ctx, book, parts)
-	}); err != nil {
-		return nil, fmt.Errorf("failed to index documents: %w", err)
-	}
-
-	return nil, nil
+	return genkit.Run(ctx, "indexDocuments", func() (any, error) {
+		return nil, indexDocuments(a.bookVectorStore, ctx, book, parts)
+	})
 }
 
 func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (string, error) {
@@ -56,7 +52,16 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 			return nil, fmt.Errorf("failed to get book by ID %s: %w", input.BookID, err)
 		}
 
-		return a.docStore.Retrieve(ctx, book, input.Question, 6)
+		resp, err := a.retriever.Retrieve(ctx, &ai.RetrieverRequest{
+			Query: ai.DocumentFromText(input.Question, map[string]any{
+				"book_id": book.ID,
+				"limit":   6, // TODO: inject this value from config
+			}),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve documents: %w", err)
+		}
+		return resp.Documents, nil
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve documents: %w", err)

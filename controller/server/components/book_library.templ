@@ -2,9 +2,7 @@ package components
 
 import "github.com/thomas-marquis/goLLMan/internal/domain"
 
-
-
-templ BookCard(book domain.Book) {
+templ bookCard(book domain.Book) {
     <div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-primary-100 dark:hover:bg-gray-700 transition-colors">
         <div class="flex items-center mr-2">
             <input 
@@ -19,26 +17,29 @@ templ BookCard(book domain.Book) {
         <div class="flex-1">
             <h3 class="text-sm font-medium text-gray-900 dark:text-white">{book.Title}</h3>
             <div class="flex items-center mt-1">
-                // if book.Status == StatusIndexing {
-                //    <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Indexing</span>
-                //} else {
-                //    <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">Indexed</span>
-                //}
-
-                <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">Indexed</span>
+                switch book.Status {
+                case domain.StatusIndexing:
+                   <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Indexing</span>
+                case domain.StatusIndexed:
+                    <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">Indexed</span>
+                case domain.StatusError:
+                    <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full dark:bg-red-900 dark:text-red-300">Error</span>
+                default:
+                    <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full dark:bg-gray-900 dark:text-gray-300">Unknown</span>
+                }
             </div>
         </div>
     </div>
 }
 
-templ BooksList(books []models.Book) {
+templ BooksLibrary(books []domain.Book) {
     <div class="h-full overflow-y-auto">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Livres</h2>
         </div>
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             for _, book := range books {
-                @BookCard(book)
+                @bookCard(book)
             }
         </div>
     </div>

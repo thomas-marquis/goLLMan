@@ -1,4 +1,4 @@
-package docstore
+package agent
 
 import (
 	"github.com/firebase/genkit/go/ai"

@@ -2,63 +2,41 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"fmt"
+	"github.com/firebase/genkit/go/ai"
+	"github.com/pgvector/pgvector-go"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
+	"github.com/thomas-marquis/goLLMan/internal/infrastructure/orm"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"strconv"
 )
 
-const (
-	querySelectBookByID             = "SELECT id, title, author, metadata FROM books WHERE id = $1"
-	queryInsertBook                 = "INSERT INTO books (title, author, metadata) VALUES ($1, $2, $3) RETURNING id"
-	querySelectAllBooks             = "SELECT id, title, author, metadata FROM books"
-	querySelectBookByTitleAndAuthor = "SELECT id, title, author, metadata FROM books WHERE title = $1 AND author = $2"
-)
-
 type BookRepositoryPostgres struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
 var _ domain.BookRepository = (*BookRepositoryPostgres)(nil)
+var _ domain.BookVectorStore = (*BookRepositoryPostgres)(nil)
 
-func NewBookRepositoryPostgres(pool *pgxpool.Pool) *BookRepositoryPostgres {
+func NewBookRepositoryPostgres(db *gorm.DB) *BookRepositoryPostgres {
 	return &BookRepositoryPostgres{
-		pool: pool,
+		db: db,
 	}
 }
 
 func (r *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error) {
-	rows, err := r.pool.Query(ctx, querySelectAllBooks)
-	if err != nil {
-		return nil, errors.Join(domain.ErrRepositoryError, err)
-	}
-	defer rows.Close()
+	var ormBooks []orm.Book
 
-	var books []domain.Book
-	for rows.Next() {
-		var book domain.Book
-		var metadataJson []byte
-
-		if err := rows.Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
-			return nil, errors.Join(domain.ErrRepositoryError, err)
-		}
-
-		if metadataJson != nil {
-			var metadata map[string]any
-			if err := json.Unmarshal(metadataJson, &metadata); err != nil {
-				return nil, errors.Join(domain.ErrRepositoryError, err)
-			}
-			book.Metadata = metadata
-		} else {
-			book.Metadata = nil
-		}
-		books = append(books, book)
+	result := r.db.WithContext(ctx).Find(&ormBooks)
+	if result.Error != nil {
+		return nil, errors.Join(domain.ErrRepositoryError, result.Error)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, errors.Join(domain.ErrRepositoryError, err)
+	books := make([]domain.Book, len(ormBooks))
+	for i, ormBook := range ormBooks {
+		books[i] = ormBook.ToDomain()
 	}
 
 	return books, nil
@@ -83,78 +61,96 @@ func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, 
 	}
 
 	// If the book does not exist, insert it
-	var metadataJson []byte
-
-	if metadata != nil {
-		metadataJson, err = json.Marshal(metadata)
-		if err != nil {
-			return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
-		}
+	domainBook := domain.Book{
+		Title:    title,
+		Author:   author,
+		Metadata: metadata,
 	}
 
-	if err := r.pool.QueryRow(ctx, queryInsertBook, title, author, metadataJson).Scan(&book.ID); err != nil {
+	ormBook, err := orm.BookFromDomain(domainBook)
+	if err != nil {
 		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
-	book.Title = title
-	book.Author = author
 
-	return book, nil
+	result := r.db.WithContext(ctx).Create(ormBook)
+	if result.Error != nil {
+		return domain.Book{}, errors.Join(domain.ErrRepositoryError, result.Error)
+	}
+
+	return ormBook.ToDomain(), nil
 }
 
 func (r *BookRepositoryPostgres) GetByID(ctx context.Context, id string) (domain.Book, error) {
-	var book domain.Book
-	var metadataJson []byte
-
 	bookId, err := strconv.Atoi(id)
 	if err != nil {
-		return book, errors.Join(domain.ErrRepositoryError, err)
-	}
-	if err := r.pool.QueryRow(ctx, querySelectBookByID, bookId).
-		Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return book, domain.ErrBookNotFound
-		}
-		return book, errors.Join(domain.ErrRepositoryError, err)
+		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
 
-	if metadataJson != nil {
-		var metadata map[string]any
-		if err := json.Unmarshal(metadataJson, &metadata); err != nil {
-			return book, errors.Join(domain.ErrRepositoryError, err)
+	var ormBook orm.Book
+	result := r.db.WithContext(ctx).First(&ormBook, bookId)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.Book{}, domain.ErrBookNotFound
 		}
-		book.Metadata = metadata
-	} else {
-		book.Metadata = nil
+		return domain.Book{}, errors.Join(domain.ErrRepositoryError, result.Error)
 	}
 
-	return book, nil
+	return ormBook.ToDomain(), nil
 }
 
 func (r *BookRepositoryPostgres) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
-	var book domain.Book
-	var metadataJson []byte
-
-	if err := r.pool.QueryRow(ctx, querySelectBookByTitleAndAuthor, title, author).
-		Scan(&book.ID, &book.Title, &book.Author, &metadataJson); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return book, domain.ErrBookNotFound
+	var ormBook orm.Book
+	result := r.db.WithContext(ctx).Where("title = ? AND author = ?", title, author).First(&ormBook)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.Book{}, domain.ErrBookNotFound
 		}
-		return book, errors.Join(domain.ErrRepositoryError, err)
+		return domain.Book{}, errors.Join(domain.ErrRepositoryError, result.Error)
 	}
 
-	if metadataJson != nil {
-		var metadata map[string]any
-		if err := json.Unmarshal(metadataJson, &metadata); err != nil {
-			return book, errors.Join(domain.ErrRepositoryError, err)
-		}
-		book.Metadata = metadata
-	} else {
-		book.Metadata = nil
-	}
-
-	return book, nil
+	return ormBook.ToDomain(), nil
 }
 
 func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, filePath string) (domain.Book, error) {
 	return parseEpubFromFile(filePath)
+}
+
+func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
+	bi := orm.BookIndex{
+		Content:   content,
+		Embedding: pgvector.NewVector(vector),
+	}
+	if err := r.db.Create(&bi).Error; err != nil {
+		return fmt.Errorf("failed to create book index: %w", err)
+	}
+	return nil
+}
+
+func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, book domain.Book, embedding []float32, limit int) ([]*ai.Document, error) {
+	var bis []orm.BookIndex
+	if err := r.db.
+		Clauses(clause.OrderBy{
+			Expression: clause.Expr{
+				SQL:  "embedding <=> ?",
+				Vars: []any{pgvector.NewVector(embedding)},
+			},
+		}).
+		Limit(limit).
+		Where("book_id = ?", book.ID).
+		Find(&bis).Error; err != nil {
+		return nil, fmt.Errorf("failed to retrieve book indices: %w", err)
+	}
+
+	documents := make([]*ai.Document, len(bis), len(bis))
+	for i, bi := range bis {
+		documents[i] = ai.DocumentFromText(
+			bi.Content,
+			map[string]any{
+				"id":      bi.ID,
+				"book_id": bi.BookID,
+			},
+		)
+	}
+
+	return documents, nil
 }

@@ -2,6 +2,9 @@
 
 An agentic thinking application written in go.
 
+## Setup development environment
+
+
 ## Useful resources
 
 | Resource       | For what?                                                     | Link(s)                                                                                                                                            |

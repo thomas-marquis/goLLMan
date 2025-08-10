@@ -4,10 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	firstEpubPath = "documents/effectiveconcurrencyingo.epub"
-)
-
 // indexCmd represents the index command
 var (
 	indexCmd = &cobra.Command{

@@ -1,8 +1,8 @@
 package components
 
-import "github.com/thomas-marquis/goLLMan/controller/server/models"
+import "github.com/thomas-marquis/goLLMan/internal/domain"
 
-templ Page(books []models.Book) {
+templ Page(initialBooks []domain.Book) {
     <!DOCTYPE html>
     <html lang="fr" class="h-full">
     <head>
@@ -32,7 +32,6 @@ templ Page(books []models.Book) {
         </script>
     </head>
     <body class="h-full bg-primary-100 dark:bg-gray-800">
-        <!-- Header commun à toute la page -->
         <header class="w-full bg-primary-500 text-white p-4 flex justify-between items-center">
             <h1 class="text-xl font-bold">Chat with GoLLM</h1>
             <button id="theme-toggle" class="p-2 rounded-full bg-primary-300 text-white">
@@ -42,14 +41,11 @@ templ Page(books []models.Book) {
             </button>
         </header>
 
-        <!-- Conteneur principal avec menu latéral et contenu -->
         <div class="flex h-[calc(100%-4rem)]">
-            <!-- Menu latéral -->
             <aside class="w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-md">
-                @BooksList(books)
+                @BooksLibrary(initialBooks)
             </aside>
 
-            <!-- Contenu principal -->
             <main class="flex-1 flex flex-col h-full">
                 <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 relative">
                     <div hx-ext="sse"
