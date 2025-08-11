@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
@@ -9,23 +10,24 @@ import (
 )
 
 func (a *Agent) bookRetrieverHandler(ctx context.Context, req *ai.RetrieverRequest) (*ai.RetrieverResponse, error) {
-	book_id, ok := req.Query.Metadata["book_id"].(string)
-	if !ok {
-		return nil, fmt.Errorf("book not found in query metadata")
+	books, err := a.bookRepository.ListSelected(ctx)
+	if err != nil {
+		if errors.Is(err, domain.ErrBookNotFound) {
+			pkg.Logger.Println("No book selected, returning empty retriever response")
+			return &ai.RetrieverResponse{Documents: make([]*ai.Document, 0)}, nil
+		}
+		return nil, fmt.Errorf("failed to get selected books: %w", err)
 	}
+
 	limit, ok := req.Query.Metadata["limit"].(int)
 	if !ok || limit <= 0 {
 		limit = 3
 		pkg.Logger.Printf("limit not found in query metadata, applying default limit: %d", limit)
 	}
+
 	query := pkg.ContentToText(req.Query.Content)
 
-	book, err := a.bookRepository.GetByID(ctx, book_id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve book by ID %s: %w", book_id, err)
-	}
-
-	docs, err := retrieveDocument(a.embedder, a.bookVectorStore, ctx, book, query, limit)
+	docs, err := retrieveDocument(a.embedder, a.bookVectorStore, ctx, books, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve documents: %w", err)
 	}
@@ -37,7 +39,7 @@ func retrieveDocument(
 	embedder ai.Embedder,
 	vectorStore domain.BookVectorStore,
 	ctx context.Context,
-	book domain.Book, query string, limit int,
+	books []domain.Book, query string, limit int,
 ) ([]*ai.Document, error) {
 	eReq := &ai.EmbedRequest{
 		Input: []*ai.Document{ai.DocumentFromText(query, nil)},
@@ -48,5 +50,5 @@ func retrieveDocument(
 	}
 	vec := eRes.Embeddings[0].Embedding
 
-	return vectorStore.Retrieve(ctx, book, vec, limit)
+	return vectorStore.Retrieve(ctx, books, vec, limit)
 }

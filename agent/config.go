@@ -6,13 +6,15 @@ type Config struct {
 	SessionID           string
 	Verbose             bool
 	SessionMessageLimit int
-	DisableAI           bool
 
 	EmbeddingVectorSize int
 
-	DockStoreImpl string
+	RetrievalLimit int
 
 	MistralApiKey               string
 	MistralMaxRequestsPerSecond int
 	MistralTimeout              time.Duration
+
+	CompletionModel string
+	EmbeddingModel  string
 }

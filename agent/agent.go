@@ -6,15 +6,16 @@ import (
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
+	"github.com/thomas-marquis/genkit-mistral/mistral"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
+	"time"
 )
 
 type ChatbotInput struct {
 	Question string `json:"question"`
-	BookID   string `json:"book_id"`
 	Session  string `json:"session,omitempty"`
 }
 
@@ -32,13 +33,30 @@ type Agent struct {
 }
 
 func New(
-	g *genkit.Genkit,
 	cfg Config,
 	store session.Store,
 	docLoader loader.BookLoader,
 	bookRepository domain.BookRepository,
 	bookVectorStore domain.BookVectorStore,
 ) *Agent {
+
+	ctx := context.Background()
+
+	rateLimit := cfg.MistralMaxRequestsPerSecond
+	g, err := genkit.Init(ctx,
+		genkit.WithPlugins(
+			mistral.NewPlugin(cfg.MistralApiKey,
+				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(rateLimit, rateLimit, time.Second)),
+				mistral.WithVerbose(cfg.Verbose),
+				mistral.WithClientTimeout(cfg.MistralTimeout),
+			),
+		),
+		genkit.WithDefaultModel(cfg.CompletionModel),
+	)
+	if err != nil {
+		pkg.Logger.Fatalf("failed to init genkit: %s", err)
+	}
+
 	a := &Agent{
 		g:               g,
 		sessionStore:    store,
@@ -51,14 +69,13 @@ func New(
 	a.indexerFlow = genkit.DefineFlow(g, "indexerFlow", a.indexerFlowHandler)
 	a.retriever = genkit.DefineRetriever(g, "gollman", "bookRetriever", a.bookRetrieverHandler)
 
-	a.embedder = genkit.LookupEmbedder(g, "mistral", "mistral-embed")
-
-	if cfg.DisableAI {
-		pkg.Logger.Println("AI disabled")
-		a.chatbotFlow = genkit.DefineFlow(g, "chatbotFakeFlow", a.chatbotFakeHandle)
-	} else {
-		a.chatbotFlow = genkit.DefineFlow(g, "chatbotAIFlow", a.chatbotAiFlowHandler)
+	embProvider, embModel, err := pkg.ParseModelRef(cfg.EmbeddingModel)
+	if err != nil {
+		pkg.Logger.Fatalf("failed to parse embedding model: %s", err)
 	}
+	a.embedder = genkit.LookupEmbedder(g, embProvider, embModel)
+
+	a.chatbotFlow = genkit.DefineFlow(g, "chatbotAIFlow", a.chatbotAiFlowHandler)
 
 	return a
 }

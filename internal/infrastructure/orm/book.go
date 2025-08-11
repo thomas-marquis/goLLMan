@@ -12,6 +12,7 @@ type Book struct {
 	Title    string            `gorm:"not null"`
 	Author   string            `gorm:"not null"`
 	Metadata datatypes.JSONMap `gorm:"type:jsonb"`
+	Selected bool              `gorm:"not null;default:false"`
 }
 
 // ToDomain converts the ORM entity to domain entity
@@ -21,6 +22,7 @@ func (b Book) ToDomain() domain.Book {
 		Title:    b.Title,
 		Author:   b.Author,
 		Metadata: b.Metadata,
+		Selected: b.Selected,
 	}
 }
 
@@ -30,6 +32,7 @@ func BookFromDomain(book domain.Book) (*Book, error) {
 		Title:    book.Title,
 		Author:   book.Author,
 		Metadata: book.Metadata,
+		Selected: book.Selected,
 	}, nil
 }
 

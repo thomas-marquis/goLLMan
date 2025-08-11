@@ -22,7 +22,7 @@ import (
 
 func (s *Server) FlowsHandlers(r *gin.Engine, g *genkit.Genkit) {
 	for _, flow := range genkit.ListFlows(g) {
-		s.router.POST("/"+flow.Name(), func(c *gin.Context) {
+		r.POST("/"+flow.Name(), func(c *gin.Context) {
 			genkit.Handler(flow)(c.Writer, c.Request)
 		})
 	}
@@ -41,7 +41,8 @@ func (s *Server) GetPageHandler(r *gin.Engine) {
 		books, err := s.bookRepository.List(context.Background())
 		if err != nil {
 			pkg.Logger.Printf("Failed to list books: %s\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Books loading failed", err.Error()))
 			return
 		}
 		c.HTML(http.StatusOK, "", components.Page(books))
@@ -55,13 +56,15 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
 			pkg.Logger.Println(err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Session loading failed", err.Error()))
 			return
 		}
 
 		var formData messageSubmitFormData
 		if err := c.Bind(&formData); err != nil {
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			c.HTML(http.StatusBadRequest, "", components.Toast(
+				components.ToastLevelError, "Invalid format", err.Error()))
 			return
 		}
 
@@ -71,11 +74,11 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 		in := agent.ChatbotInput{
 			Question: formData.Question,
 			Session:  sess.ID(),
-			BookID:   "1",
 		}
 		if _, err = s.flow.Run(c.Request.Context(), in); err != nil {
 			pkg.Logger.Printf("Failed to generate response from flow: %s\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Response generation failed", err.Error()))
 			return
 		}
 
@@ -91,21 +94,23 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
 			pkg.Logger.Println(err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Session loading failed", err.Error()))
 			return
 		}
 		stream.AttachSession(sess)
 
 		v, ok := c.Get(clientChanKey)
 		if !ok {
-			c.HTML(http.StatusInternalServerError, "",
-				components.ErrorBanner("client not found"))
+			pkg.Logger.Println("client chanel not found")
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Ooops...", "Something went wrong. Please try again later."))
 			return
 		}
 		clientMessageChan, ok := v.(messagesChan)
 		if !ok {
-			c.HTML(http.StatusInternalServerError, "",
-				components.ErrorBanner("internal processing error"))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Ooops...", "internal processing error"))
 			return
 		}
 
@@ -126,7 +131,8 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 
 				if _, err := convertToHTML(pkg.ContentToText(msg.Content)); err != nil {
 					pkg.Logger.Printf("Error converting content to HTML: %s\n", err)
-					c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+					c.HTML(http.StatusInternalServerError, "", components.Toast(
+						components.ToastLevelError, "Response processing failed", err.Error()))
 					return false
 				}
 
@@ -142,7 +148,7 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 	})
 }
 
-func (d *Server) NotificationHandlers(r *gin.Engine) {
+func (s *Server) NotificationHandlers(r *gin.Engine) {
 	r.GET("notifications/end", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "", "")
 	})
@@ -166,15 +172,16 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		file, err := c.FormFile("epub-file")
 		if err != nil {
 			pkg.Logger.Printf("Error getting file sent by user: %v\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("No file uploaded or invalid file"))
+			c.HTML(http.StatusBadRequest, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "No file uploaded or invalid file"))
 			return
 		}
 
 		// Verify the file is an EPUB
 		if filepath.Ext(file.Filename) != ".epub" {
 			pkg.Logger.Printf("Invalid file type: %s\n", file.Filename)
-			c.HTML(http.StatusInternalServerError, "",
-				components.ErrorBanner("only EPUB files are allowed"))
+			c.HTML(http.StatusBadRequest, "", components.Toast(
+				components.ToastLevelError, "Bad format", "only EPUB files are allowed"))
 			return
 		}
 
@@ -182,8 +189,8 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		tempDir := "./tmp/uploads"
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			pkg.Logger.Printf("Error creating directory: %v", err)
-			c.HTML(http.StatusInternalServerError, "",
-				components.ErrorBanner("Failed to prepare for upload"))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to prepare for upload"))
 			return
 		}
 
@@ -194,7 +201,8 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		// Save the file to disk
 		if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
 			pkg.Logger.Printf("Error saving file: %v", err)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to save file"))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to save file"))
 			return
 		}
 
@@ -203,7 +211,9 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		if err != nil {
 			pkg.Logger.Printf("Error processing EPUB: %v", err)
 			os.Remove(tempFilePath)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to process EPUB file"))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Upload failed",
+				"Failed to process EPUB file. Is your file corrupted?"))
 			return
 		}
 
@@ -217,12 +227,14 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		if err != nil {
 			pkg.Logger.Printf("Error adding book to repository: %v", err)
 			os.Remove(tempFilePath)
-			c.HTML(http.StatusInternalServerError, "", components.ErrorBanner("Failed to add book to library"))
+			c.HTML(http.StatusInternalServerError, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to add book to library"))
 			return
 		}
 
 		os.Remove(tempFilePath)
-		c.HTML(http.StatusOK, "", components.SuccessMessage("Book uploaded successfully", addedBook))
+		c.HTML(http.StatusOK, "", components.Toast(components.ToastLevelSuccess, "Upload",
+			fmt.Sprintf("Book %s uploaded successfully. Indexing is starting...", addedBook.Title)))
 	})
 }
 
@@ -230,7 +242,8 @@ func sendToStream(c *gin.Context, comp templ.Component) {
 	buff := new(bytes.Buffer)
 	if err := comp.Render(c.Request.Context(), buff); err != nil {
 		pkg.Logger.Printf("Error rendering component: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "", components.ErrorBanner(err.Error()))
+		c.HTML(http.StatusInternalServerError, "", components.Toast(
+			components.ToastLevelError, "Internal error", err.Error()))
 		return
 	}
 	c.SSEvent("message", buff.String())

@@ -9,7 +9,6 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
-	"time"
 )
 
 const (
@@ -35,11 +34,6 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 			book.Title, book.Author, err)
 	}
 
-	if a.cfg.DisableAI {
-		pkg.Logger.Printf("Skipping indexing for book %s (%s) because AI is disabled\n", book.Title, book.Author)
-		return nil, nil
-	}
-
 	return genkit.Run(ctx, "indexDocuments", func() (any, error) {
 		return nil, indexDocuments(a.bookVectorStore, ctx, book, parts)
 	})
@@ -47,15 +41,9 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 
 func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (string, error) {
 	docs, err := genkit.Run(ctx, "retrieveDocuments", func() ([]*ai.Document, error) {
-		book, err := a.bookRepository.GetByID(ctx, input.BookID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get book by ID %s: %w", input.BookID, err)
-		}
-
 		resp, err := a.retriever.Retrieve(ctx, &ai.RetrieverRequest{
 			Query: ai.DocumentFromText(input.Question, map[string]any{
-				"book_id": book.ID,
-				"limit":   6, // TODO: inject this value from config
+				"limit": a.cfg.RetrievalLimit,
 			}),
 		})
 		if err != nil {
@@ -77,7 +65,6 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 				}
 			} else {
 				return nil, fmt.Errorf("failed to get session: %w", err)
-
 			}
 		}
 		return sess, nil
@@ -100,8 +87,6 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 		return "", err
 	}
 
-	var _ = prevMsg
-
 	resp, err := genkit.Run(ctx, "generateResponse", func() (*ai.ModelResponse, error) {
 		return genkit.Generate(ctx, a.g,
 			ai.WithSystem(systemPrompt),
@@ -122,35 +107,6 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 		}
 		return resp.Text(), nil
 	})
-}
-
-func (a *Agent) chatbotFakeHandle(ctx context.Context, input ChatbotInput) (string, error) {
-	sess, err := a.sessionStore.GetByID(ctx, input.Session)
-	if err != nil {
-		if errors.Is(err, session.ErrSessionNotFound) {
-			sess, err = a.initSession(ctx, input.Session)
-			if err != nil {
-				return "", fmt.Errorf("failed to initialize session: %w", err)
-			}
-		} else {
-			return "", fmt.Errorf("failed to get session: %w", err)
-
-		}
-	}
-
-	userMsg := ai.NewUserMessage(pkg.ContentFromText(input.Question)...)
-	if err := sess.AddMessage(userMsg); err != nil {
-		return "", fmt.Errorf("failed to add user message to session: %w", err)
-	}
-
-	time.Sleep(1 * time.Second) // Simulate processing delay
-	fakeResponse := fmt.Sprintf("I agree with you when you say:\n%s", input.Question)
-	fakeAiMsg := ai.NewModelMessage(pkg.ContentFromText(fakeResponse)...)
-	if err := sess.AddMessage(fakeAiMsg); err != nil {
-		return "", fmt.Errorf("failed to add fake AI message to session: %w", err)
-	}
-
-	return fakeResponse, nil
 }
 
 func (a *Agent) initSession(ctx context.Context, sessionID string) (*session.Session, error) {

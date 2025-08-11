@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"github.com/firebase/genkit/go/genkit"
-	"github.com/thomas-marquis/genkit-mistral/mistral"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/loader"
 	"github.com/thomas-marquis/goLLMan/agent/session"
@@ -14,14 +13,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
-	"time"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
-	completionModel = "mistral/mistral-small"
+	defaultCompletionModel = "mistral/mistral-small"
+	defaultEmbeddingModel  = "mistral/mistral-embed"
 )
 
 var (
@@ -69,9 +65,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "enable verbose output")
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 
-	rootCmd.PersistentFlags().BoolP("disable-ai", "d", false,
-		"Disable AI and use generic fake response instead (for testing purpose).")
-	viper.BindPFlag("agent.disableAI", rootCmd.PersistentFlags().Lookup("disable-ai"))
+	viper.SetDefault("agent.retrievalLimit", 6)
+	viper.SetDefault("agent.completionModel", defaultCompletionModel)
+	viper.SetDefault("agent.embeddingModel", defaultEmbeddingModel)
 
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
@@ -87,20 +83,6 @@ func initConfig() {
 		return
 	}
 
-	ctx := context.Background()
-
-	g, err := initGenkit(
-		ctx,
-		viper.GetString("mistral.apiKey"),
-		viper.GetBool("verbose"),
-		viper.GetDuration("mistral.timeout"),
-		viper.GetInt("mistral.maxReqPerSec"),
-	)
-	if err != nil {
-		rootCmd.Printf("Error initializing G: %s\n", err)
-		return
-	}
-
 	p := pgConfig{
 		DbName:   viper.GetString("postgres.database"),
 		User:     viper.GetString("postgres.user"),
@@ -109,7 +91,7 @@ func initConfig() {
 		Port:     viper.GetString("postgres.port"),
 	}
 
-	db, err = initPgGormDB(p)
+	db, err := initPgGormDB(p)
 	if err != nil {
 		rootCmd.Printf("Error initializing PostgreSQL db: %s\n", err)
 		os.Exit(1)
@@ -120,32 +102,22 @@ func initConfig() {
 	bookRepository = bookRepoImpl
 
 	agentConfig = agent.Config{
-		SessionID:           viper.GetString("session"),
-		Verbose:             viper.GetBool("verbose"),
-		DockStoreImpl:       viper.GetString("agent.docstore"),
-		DisableAI:           viper.GetBool("agent.disableAI"),
-		SessionMessageLimit: viper.GetInt("agent.sessionMessageLimit"),
+		SessionID:                   viper.GetString("session"),
+		Verbose:                     viper.GetBool("verbose"),
+		SessionMessageLimit:         viper.GetInt("agent.sessionMessageLimit"),
+		RetrievalLimit:              viper.GetInt("agent.retrievalLimit"),
+		MistralApiKey:               viper.GetString("mistral.apiKey"),
+		MistralTimeout:              viper.GetDuration("mistral.timeout"),
+		MistralMaxRequestsPerSecond: viper.GetInt("mistral.maxReqPerSec"),
+		CompletionModel:             viper.GetString("agent.completionModel"),
+		EmbeddingModel:              viper.GetString("agent.embeddingModel"),
 	}
 
 	docLoader := loader.NewLocalEpubLoader(bookRepository)
 
 	sessionStore = in_memory.NewSessionStore()
 
-	mainAgent = agent.New(g, agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
-
-}
-
-func initGenkit(ctx context.Context, mistralApiKey string, verbose bool, timeout time.Duration, rateLimit int) (*genkit.Genkit, error) {
-	return genkit.Init(ctx,
-		genkit.WithPlugins(
-			mistral.NewPlugin(mistralApiKey,
-				mistral.WithRateLimiter(mistral.NewBucketCallsRateLimiter(rateLimit, rateLimit, time.Second)),
-				mistral.WithVerbose(verbose),
-				mistral.WithClientTimeout(timeout),
-			),
-		),
-		genkit.WithDefaultModel(completionModel),
-	)
+	mainAgent = agent.New(agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
 }
 
 func initPgGormDB(cfg pgConfig) (*gorm.DB, error) {

@@ -1,6 +1,10 @@
 package pkg
 
-import "github.com/firebase/genkit/go/ai"
+import (
+	"fmt"
+	"github.com/firebase/genkit/go/ai"
+	"strings"
+)
 
 func ContentToText(content []*ai.Part) string {
 	if len(content) != 1 || (len(content) >= 1 && content[0].Kind != ai.PartText) {
@@ -40,4 +44,24 @@ func ClearMessageContext(msg []*ai.Message) {
 			m.Content = m.Content[:ctxPartIdx]
 		}
 	}
+}
+
+// ParseModelRef extracts the provider and model from a reference string formatted as "provider/model".
+// Returns an error if the format is invalid or values are empty.
+func ParseModelRef(ref string) (provider string, model string, err error) {
+	parts := strings.Split(ref, "/")
+	if len(parts) != 2 {
+		err = fmt.Errorf("invalid format: expected provider/model, got: '%s'", ref)
+		return
+	}
+
+	provider = parts[0]
+	model = parts[1]
+
+	if provider == "" || model == "" {
+		err = fmt.Errorf("invalid format: provider or model is empty")
+		return
+	}
+
+	return
 }

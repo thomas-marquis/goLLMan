@@ -8,6 +8,7 @@ import (
 	"github.com/pgvector/pgvector-go"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure/orm"
+	"github.com/thomas-marquis/goLLMan/pkg"
 	"github.com/timsims/pamphlet"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -36,6 +37,28 @@ func (r *BookRepositoryPostgres) List(ctx context.Context) ([]domain.Book, error
 
 	result := r.db.WithContext(ctx).Find(&ormBooks)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrBookNotFound
+		}
+		return nil, errors.Join(domain.ErrRepositoryError, result.Error)
+	}
+
+	books := make([]domain.Book, len(ormBooks))
+	for i, ormBook := range ormBooks {
+		books[i] = ormBook.ToDomain()
+	}
+
+	return books, nil
+}
+
+func (r *BookRepositoryPostgres) ListSelected(ctx context.Context) ([]domain.Book, error) {
+	var ormBooks []orm.Book
+
+	result := r.db.WithContext(ctx).Find(&ormBooks)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrBookNotFound
+		}
 		return nil, errors.Join(domain.ErrRepositoryError, result.Error)
 	}
 
@@ -125,15 +148,22 @@ func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, co
 		Content:   content,
 		Embedding: pgvector.NewVector(vector),
 	}
-	if err := r.db.Create(&bi).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(&bi).Error; err != nil {
 		return fmt.Errorf("failed to create book index: %w", err)
 	}
 	return nil
 }
 
-func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, book domain.Book, embedding []float32, limit int) ([]*ai.Document, error) {
+func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, books []domain.Book, embedding []float32, limit int) ([]*ai.Document, error) {
+	bookIDs := make([]int, len(books), len(books))
+	for i, book := range books {
+		id, _ := strconv.Atoi(book.ID)
+		bookIDs[i] = id
+	}
+
 	var bis []orm.BookIndex
 	if err := r.db.
+		WithContext(ctx).
 		Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL:  "embedding <=> ?",
@@ -141,9 +171,13 @@ func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, book domain.Book,
 			},
 		}).
 		Limit(limit).
-		Where("book_id = ?", book.ID).
+		Where("book_id IN ?", bookIDs).
 		Find(&bis).Error; err != nil {
-		return nil, fmt.Errorf("failed to retrieve book indices: %w", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			pkg.Logger.Println("No book index found, returning empty retriever response")
+			return make([]*ai.Document, 0), nil
+		}
+		return nil, fmt.Errorf("failed to retrieve books indices: %w", err)
 	}
 
 	documents := make([]*ai.Document, len(bis), len(bis))
