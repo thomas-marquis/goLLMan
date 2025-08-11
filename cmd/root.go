@@ -91,7 +91,8 @@ func initConfig() {
 		Port:     viper.GetString("postgres.port"),
 	}
 
-	db, err := initPgGormDB(p)
+	var err error
+	db, err = initPgGormDB(p)
 	if err != nil {
 		rootCmd.Printf("Error initializing PostgreSQL db: %s\n", err)
 		os.Exit(1)

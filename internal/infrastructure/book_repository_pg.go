@@ -85,7 +85,7 @@ func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, 
 		}
 	}
 	if exists {
-		return book, nil
+		return book, domain.ErrBookAlreadyExists
 	}
 
 	// If the book does not exist, insert it
@@ -144,7 +144,7 @@ func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, filePath stri
 }
 
 func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
-	bi := orm.BookIndex{
+	bi := orm.BookPart{
 		Content:   content,
 		Embedding: pgvector.NewVector(vector),
 	}
@@ -161,7 +161,7 @@ func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, books []domain.Bo
 		bookIDs[i] = id
 	}
 
-	var bis []orm.BookIndex
+	var bis []orm.BookPart
 	if err := r.db.
 		WithContext(ctx).
 		Clauses(clause.OrderBy{

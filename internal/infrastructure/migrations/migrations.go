@@ -20,8 +20,8 @@ func MigrateUp(db *gorm.DB) error {
 		}
 	}
 
-	if !migrator.HasTable(&orm.BookIndex{}) {
-		if err := migrator.CreateTable(&orm.BookIndex{}); err != nil {
+	if !migrator.HasTable(&orm.BookPart{}) {
+		if err := migrator.CreateTable(&orm.BookPart{}); err != nil {
 			return err
 		}
 	}

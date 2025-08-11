@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/a-h/templ"
 	"github.com/firebase/genkit/go/ai"
@@ -11,6 +12,7 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent"
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/controller/server/components"
+	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
 	"github.com/yuin/goldmark"
 	"io"
@@ -225,8 +227,14 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 			book.Metadata,
 		)
 		if err != nil {
-			pkg.Logger.Printf("Error adding book to repository: %v", err)
 			os.Remove(tempFilePath)
+			if errors.Is(domain.ErrBookAlreadyExists, err) {
+				c.HTML(http.StatusBadRequest, "", components.Toast(
+					components.ToastLevelInfo, "Book already exists",
+					"A book with the same title and author already exists in the library"))
+				return
+			}
+			pkg.Logger.Printf("Error adding book to repository: %v", err)
 			c.HTML(http.StatusInternalServerError, "", components.Toast(
 				components.ToastLevelError, "Upload failed", "Failed to add book to library"))
 			return
@@ -235,6 +243,7 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		os.Remove(tempFilePath)
 		c.HTML(http.StatusOK, "", components.Toast(components.ToastLevelSuccess, "Upload",
 			fmt.Sprintf("Book %s uploaded successfully. Indexing is starting...", addedBook.Title)))
+		c.HTML(http.StatusOK, "", components.BookCard(addedBook))
 	})
 }
 

@@ -2,10 +2,11 @@ package components
 
 import "github.com/thomas-marquis/goLLMan/internal/domain"
 
-templ bookCard(book domain.Book) {
+
+templ bookItem(book domain.Book) {
     <div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-primary-100 dark:hover:bg-gray-700 transition-colors">
         <div class="flex items-center mr-2">
-            <input 
+            <input
                 type="checkbox"
                 id={"book-" + book.ID}
                 checked?={book.Selected}
@@ -32,6 +33,12 @@ templ bookCard(book domain.Book) {
     </div>
 }
 
+templ BookCard(book domain.Book) {
+    <div hx-swap-oob="beforeend:#library-container">
+        @bookItem(book)
+    </div>
+}
+
 templ BooksLibrary(books []domain.Book) {
     <div class="h-full overflow-y-auto">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -48,9 +55,9 @@ templ BooksLibrary(books []domain.Book) {
                 Add
             </button>
         </div>
-        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div id="library-container" class="divide-y divide-gray-200 dark:divide-gray-700">
             for _, book := range books {
-                @bookCard(book)
+                @bookItem(book)
             }
         </div>
     </div>

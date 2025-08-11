@@ -8,11 +8,12 @@ import (
 
 // Book represents the ORM entity for books table
 type Book struct {
-	ID       uint              `gorm:"primaryKey;autoIncrement"`
-	Title    string            `gorm:"not null"`
-	Author   string            `gorm:"not null"`
+	ID       uint   `gorm:"primaryKey;autoIncrement"`
+	Title    string `gorm:"not null"`
+	Author   string `gorm:"not null"`
+	Selected bool   `gorm:"not null;default:false"`
+	FileName string
 	Metadata datatypes.JSONMap `gorm:"type:jsonb"`
-	Selected bool              `gorm:"not null;default:false"`
 }
 
 // ToDomain converts the ORM entity to domain entity
@@ -23,16 +24,24 @@ func (b Book) ToDomain() domain.Book {
 		Author:   b.Author,
 		Metadata: b.Metadata,
 		Selected: b.Selected,
+		File: &domain.File{
+			Name: b.FileName,
+		},
 	}
 }
 
 // BookFromDomain creates an ORM entity from domain entity
 func BookFromDomain(book domain.Book) (*Book, error) {
+	var fileName string
+	if book.File != nil {
+		fileName = book.File.Name
+	}
 	return &Book{
 		Title:    book.Title,
 		Author:   book.Author,
 		Metadata: book.Metadata,
 		Selected: book.Selected,
+		FileName: fileName,
 	}, nil
 }
 
