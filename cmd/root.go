@@ -71,7 +71,7 @@ func init() {
 	viper.SetDefault("agent.retrievalLimit", 6)
 	viper.SetDefault("agent.completionModel", defaultCompletionModel)
 	viper.SetDefault("agent.embeddingModel", defaultEmbeddingModel)
-	viper.SetDefault("fileRepository.local.path", defaultLocalFileStorePath)
+	viper.SetDefault("fileStore.local.path", defaultLocalFileStorePath)
 
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
@@ -122,7 +122,7 @@ func initConfig() {
 
 	sessionStore = in_memory.NewSessionStore()
 
-	fileRepository = infrastructure.NewFileLocalStore(viper.GetString("fileRepository.local.path"))
+	fileRepository = infrastructure.NewFileLocalStore(viper.GetString("fileStore.local.path"))
 
 	mainAgent = agent.New(agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
 }

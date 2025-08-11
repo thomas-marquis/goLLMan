@@ -187,14 +187,15 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		}
 
 		ff, err := file.Open()
+		defer ff.Close()
 		if err != nil {
 			pkg.Logger.Printf("Error opening file: %v\n", err)
 			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Upload failed", "Failed to open file"))
 		}
 
-		var content []byte
-		if _, err := ff.Read(content); err != nil {
+		content, err := io.ReadAll(ff)
+		if err != nil {
 			pkg.Logger.Printf("Error reading file: %v\n", err)
 			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Upload failed", "Failed to read file"))
