@@ -38,3 +38,4 @@ documents
 /.run/
 /db/books.json
 /.genkit
+/filestore

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
@@ -92,24 +91,28 @@ func (a *Agent) G() *genkit.Genkit {
 
 // Index starts the indexing process for the agent.
 func (a *Agent) Index() error {
-	ctx := context.Background()
-	//filePath := "documents/effectiveconcurrencyingo.epub"
-	filePath := "documents/votreidee.epub"
-	parsedBook, err := a.bookRepository.ReadFromFile(ctx, filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read parsedBook from file %s: %w", filePath, err)
-	}
-
-	book, err := a.bookRepository.Add(ctx, parsedBook.Title, parsedBook.Author, parsedBook.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to add book %s by %s: %w", parsedBook.Title, parsedBook.Author, err)
-	}
-
-	pkg.Logger.Println("Indexing started...")
-	if _, err := a.indexerFlow.Run(ctx, book); err != nil {
-		return fmt.Errorf("failed to run indexer flow: %w", err)
-	}
-
-	pkg.Logger.Println("Indexing flow complete")
+	//ctx := context.Background()
+	////filePath := "documents/effectiveconcurrencyingo.epub"
+	//filePath := "documents/votreidee.epub"
+	//parsedBook, err := a.bookRepository.ReadFromFile(ctx, filePath)
+	//if err != nil {
+	//	return fmt.Errorf("failed to read parsedBook from file %s: %w", filePath, err)
+	//}
+	//
+	//f := domain.File{
+	//	Name: ""
+	//}
+	//
+	//book, err := a.bookRepository.Add(ctx, parsedBook.Title, parsedBook.Author, f, parsedBook.Metadata)
+	//if err != nil {
+	//	return fmt.Errorf("failed to add book %s by %s: %w", parsedBook.Title, parsedBook.Author, err)
+	//}
+	//
+	//pkg.Logger.Println("Indexing started...")
+	//if _, err := a.indexerFlow.Run(ctx, book); err != nil {
+	//	return fmt.Errorf("failed to run indexer flow: %w", err)
+	//}
+	//
+	//pkg.Logger.Println("Indexing flow complete")
 	return nil
 }

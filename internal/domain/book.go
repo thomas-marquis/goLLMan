@@ -17,5 +17,5 @@ type Book struct {
 	Metadata map[string]any
 	Selected bool
 	Status   Status
-	File     *File
+	File     File
 }

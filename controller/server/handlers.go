@@ -17,7 +17,6 @@ import (
 	"github.com/yuin/goldmark"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 )
@@ -43,7 +42,7 @@ func (s *Server) GetPageHandler(r *gin.Engine) {
 		books, err := s.bookRepository.List(context.Background())
 		if err != nil {
 			pkg.Logger.Printf("Failed to list books: %s\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Books loading failed", err.Error()))
 			return
 		}
@@ -58,14 +57,14 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
 			pkg.Logger.Println(err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Session loading failed", err.Error()))
 			return
 		}
 
 		var formData messageSubmitFormData
 		if err := c.Bind(&formData); err != nil {
-			c.HTML(http.StatusBadRequest, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Invalid format", err.Error()))
 			return
 		}
@@ -79,7 +78,7 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 		}
 		if _, err = s.flow.Run(c.Request.Context(), in); err != nil {
 			pkg.Logger.Printf("Failed to generate response from flow: %s\n", err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Response generation failed", err.Error()))
 			return
 		}
@@ -96,7 +95,7 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
 			pkg.Logger.Println(err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Session loading failed", err.Error()))
 			return
 		}
@@ -105,13 +104,13 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 		v, ok := c.Get(clientChanKey)
 		if !ok {
 			pkg.Logger.Println("client chanel not found")
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Ooops...", "Something went wrong. Please try again later."))
 			return
 		}
 		clientMessageChan, ok := v.(messagesChan)
 		if !ok {
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Ooops...", "internal processing error"))
 			return
 		}
@@ -133,7 +132,7 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 
 				if _, err := convertToHTML(pkg.ContentToText(msg.Content)); err != nil {
 					pkg.Logger.Printf("Error converting content to HTML: %s\n", err)
-					c.HTML(http.StatusInternalServerError, "", components.Toast(
+					c.HTML(http.StatusOK, "", components.Toast(
 						components.ToastLevelError, "Response processing failed", err.Error()))
 					return false
 				}
@@ -174,7 +173,7 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		file, err := c.FormFile("epub-file")
 		if err != nil {
 			pkg.Logger.Printf("Error getting file sent by user: %v\n", err)
-			c.HTML(http.StatusBadRequest, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Upload failed", "No file uploaded or invalid file"))
 			return
 		}
@@ -182,40 +181,62 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		// Verify the file is an EPUB
 		if filepath.Ext(file.Filename) != ".epub" {
 			pkg.Logger.Printf("Invalid file type: %s\n", file.Filename)
-			c.HTML(http.StatusBadRequest, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Bad format", "only EPUB files are allowed"))
 			return
 		}
 
-		// Create temporary directory if it doesn't exist
-		tempDir := "./tmp/uploads"
-		if err := os.MkdirAll(tempDir, 0755); err != nil {
-			pkg.Logger.Printf("Error creating directory: %v", err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
-				components.ToastLevelError, "Upload failed", "Failed to prepare for upload"))
+		ff, err := file.Open()
+		if err != nil {
+			pkg.Logger.Printf("Error opening file: %v\n", err)
+			c.HTML(http.StatusOK, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to open file"))
+		}
+
+		var content []byte
+		if _, err := ff.Read(content); err != nil {
+			pkg.Logger.Printf("Error reading file: %v\n", err)
+			c.HTML(http.StatusOK, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to read file"))
 			return
 		}
 
-		// Generate a unique filename to avoid collisions
 		timestamp := time.Now().Unix()
-		tempFilePath := fmt.Sprintf("%s/%d_%s", tempDir, timestamp, file.Filename)
-
-		// Save the file to disk
-		if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
-			pkg.Logger.Printf("Error saving file: %v", err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
-				components.ToastLevelError, "Upload failed", "Failed to save file"))
-			return
+		uniqueFilename := fmt.Sprintf("%d_%s", timestamp, file.Filename)
+		f := domain.File{Name: uniqueFilename}
+		fc := &domain.FileWithContent{
+			File:    f,
+			Content: content,
 		}
 
-		// Process the EPUB file
-		book, err := s.bookRepository.ReadFromFile(c.Request.Context(), tempFilePath)
+		// Parse the EPUB file
+		book, err := s.bookRepository.ReadFromFile(c.Request.Context(), fc)
 		if err != nil {
 			pkg.Logger.Printf("Error processing EPUB: %v", err)
-			os.Remove(tempFilePath)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
+			c.HTML(http.StatusOK, "", components.Toast(
 				components.ToastLevelError, "Upload failed",
 				"Failed to process EPUB file. Is your file corrupted?"))
+			return
+		}
+
+		// Check if the book already exists
+		if _, err := s.bookRepository.GetByTitleAndAuthor(c.Request.Context(), book.Title, book.Author); err == nil {
+			if errors.Is(domain.ErrBookAlreadyExists, err) {
+				c.HTML(http.StatusOK, "", components.Toast(
+					components.ToastLevelInfo, "Book already exists",
+					"A book with the same title and author already exists in the library"))
+				return
+			}
+			pkg.Logger.Printf("Error getting book: %v", err)
+			c.HTML(http.StatusOK, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to get book"))
+			return
+		}
+
+		if err := s.fileRepository.Store(c.Request.Context(), fc); err != nil {
+			pkg.Logger.Printf("Error storing file: %v\n", err)
+			c.HTML(http.StatusOK, "", components.Toast(
+				components.ToastLevelError, "Upload failed", "Failed to store file"))
 			return
 		}
 
@@ -224,23 +245,16 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 			c.Request.Context(),
 			book.Title,
 			book.Author,
+			f,
 			book.Metadata,
 		)
 		if err != nil {
-			os.Remove(tempFilePath)
-			if errors.Is(domain.ErrBookAlreadyExists, err) {
-				c.HTML(http.StatusOK, "", components.Toast(
-					components.ToastLevelInfo, "Book already exists",
-					"A book with the same title and author already exists in the library"))
-				return
-			}
 			pkg.Logger.Printf("Error adding book to repository: %v", err)
-			c.HTML(http.StatusInternalServerError, "", components.Toast(
-				components.ToastLevelError, "Upload failed", "Failed to add book to library"))
+			showInternalError(c, nil, "Upload failed", "Failed to add book to library")
 			return
 		}
+		addedBook.Status = domain.StatusIndexing
 
-		os.Remove(tempFilePath)
 		c.HTML(http.StatusOK, "", components.Toast(components.ToastLevelSuccess, "Upload",
 			fmt.Sprintf("Book %s uploaded successfully. Indexing is starting...", addedBook.Title)))
 		c.HTML(http.StatusOK, "", components.BookCard(addedBook))
@@ -251,8 +265,7 @@ func sendToStream(c *gin.Context, comp templ.Component) {
 	buff := new(bytes.Buffer)
 	if err := comp.Render(c.Request.Context(), buff); err != nil {
 		pkg.Logger.Printf("Error rendering component: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "", components.Toast(
-			components.ToastLevelError, "Internal error", err.Error()))
+		showInternalError(c, err, "Internal error", "")
 		return
 	}
 	c.SSEvent("message", buff.String())
@@ -265,4 +278,19 @@ func convertToHTML(content string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func showInternalError(c *gin.Context, err error, title, message string) {
+	if err == nil {
+		c.HTML(http.StatusOK, "", components.Toast(
+			components.ToastLevelError, title, message))
+		return
+	}
+	if message == "" {
+		c.HTML(http.StatusOK, "", components.Toast(
+			components.ToastLevelError, title, err.Error()))
+		return
+	}
+	c.HTML(http.StatusOK, "", components.Toast(
+		components.ToastLevelError, title, fmt.Sprintf("%s: %s", message, err.Error())))
 }

@@ -70,7 +70,7 @@ func (r *BookRepositoryPostgres) ListSelected(ctx context.Context) ([]domain.Boo
 	return books, nil
 }
 
-func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, metadata map[string]any) (domain.Book, error) {
+func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, file domain.File, metadata map[string]any) (domain.Book, error) {
 	// Check if the book already exists
 	var book domain.Book
 	var err error
@@ -93,6 +93,7 @@ func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, 
 		Title:    title,
 		Author:   author,
 		Metadata: metadata,
+		File:     file,
 	}
 
 	ormBook, err := orm.BookFromDomain(domainBook)
@@ -139,8 +140,22 @@ func (r *BookRepositoryPostgres) GetByTitleAndAuthor(ctx context.Context, title,
 	return ormBook.ToDomain(), nil
 }
 
-func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, filePath string) (domain.Book, error) {
-	return parseEpubFromFile(filePath)
+func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, file *domain.FileWithContent) (domain.Book, error) {
+	parser, err := pamphlet.OpenBytes(file.Content)
+	if err != nil {
+		return domain.Book{}, fmt.Errorf("error opening epub file: %w", err)
+	}
+
+	book := parser.GetBook()
+	if book == nil {
+		return domain.Book{}, errors.New("invalid epub file")
+	}
+
+	return domain.Book{
+		Title:  book.Title,
+		Author: book.Author,
+		File:   file.File,
+	}, nil
 }
 
 func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
@@ -192,24 +207,4 @@ func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, books []domain.Bo
 	}
 
 	return documents, nil
-}
-
-func parseEpubFromFile(filePath string) (domain.Book, error) {
-	parser, err := pamphlet.Open(filePath)
-	if err != nil {
-		return domain.Book{}, fmt.Errorf("error opening epub at %s: %w", filePath, err)
-	}
-
-	book := parser.GetBook()
-	if book == nil {
-		return domain.Book{}, fmt.Errorf("no book found in epub at %s", filePath)
-	}
-
-	return domain.Book{
-		Title:  book.Title,
-		Author: book.Author,
-		Metadata: map[string]any{
-			bookMetaLocalEpubPathKey: filePath,
-		},
-	}, nil
 }

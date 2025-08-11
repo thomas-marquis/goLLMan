@@ -28,14 +28,14 @@ var (
 			}
 
 			agentConfig.SessionID = viper.GetString("session")
-			agentConfig.SessionMessageLimit = 6
+			agentConfig.SessionMessageLimit = 6 // TODO: is this still necessary?
 
 			var ctrl controller.Controller
 			switch ctrlType {
 			case controller.CtrlTypeCmdLine:
 				ctrl = cmdline.New(agentConfig, mainAgent.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G(), bookRepository)
+				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G(), bookRepository, fileRepository)
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)

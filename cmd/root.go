@@ -18,6 +18,8 @@ import (
 const (
 	defaultCompletionModel = "mistral/mistral-small"
 	defaultEmbeddingModel  = "mistral/mistral-embed"
+
+	defaultLocalFileStorePath = "tmp"
 )
 
 var (
@@ -30,11 +32,12 @@ var (
 	sessionStore    session.Store
 	bookRepository  domain.BookRepository
 	bookVectorStore domain.BookVectorStore
+	fileRepository  domain.FileRepository
 
 	rootCmd = &cobra.Command{
 		Use:   "goLLMan",
-		Short: "A golang implementation of an agentic intelligent tinking program.",
-		Long: `This applicaiton is able to thing by itself and make decisions.
+		Short: "A golang implementation of an agentic intelligent thinking program.",
+		Long: `This application is able to thing by itself and make decisions.
 
     It's an experimental project that aims to create an agentic intelligent thinking program using Go.
     A possible side effect could be the AI-world domination, so use it with caution.`,
@@ -68,6 +71,7 @@ func init() {
 	viper.SetDefault("agent.retrievalLimit", 6)
 	viper.SetDefault("agent.completionModel", defaultCompletionModel)
 	viper.SetDefault("agent.embeddingModel", defaultEmbeddingModel)
+	viper.SetDefault("fileRepository.local.path", defaultLocalFileStorePath)
 
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(indexCmd)
@@ -117,6 +121,8 @@ func initConfig() {
 	docLoader := loader.NewLocalEpubLoader(bookRepository)
 
 	sessionStore = in_memory.NewSessionStore()
+
+	fileRepository = infrastructure.NewFileLocalStore(viper.GetString("fileRepository.local.path"))
 
 	mainAgent = agent.New(agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
 }

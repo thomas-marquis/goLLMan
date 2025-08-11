@@ -24,7 +24,7 @@ func (b Book) ToDomain() domain.Book {
 		Author:   b.Author,
 		Metadata: b.Metadata,
 		Selected: b.Selected,
-		File: &domain.File{
+		File: domain.File{
 			Name: b.FileName,
 		},
 	}
@@ -32,16 +32,12 @@ func (b Book) ToDomain() domain.Book {
 
 // BookFromDomain creates an ORM entity from domain entity
 func BookFromDomain(book domain.Book) (*Book, error) {
-	var fileName string
-	if book.File != nil {
-		fileName = book.File.Name
-	}
 	return &Book{
 		Title:    book.Title,
 		Author:   book.Author,
 		Metadata: book.Metadata,
 		Selected: book.Selected,
-		FileName: fileName,
+		FileName: book.File.Name,
 	}, nil
 }
 

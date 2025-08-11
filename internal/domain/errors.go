@@ -6,4 +6,6 @@ var (
 	ErrBookNotFound      = errors.New("book not found")
 	ErrRepositoryError   = errors.New("repository error")
 	ErrBookAlreadyExists = errors.New("book already exists")
+	ErrFileAlreadyExists = errors.New("file already exists")
+	ErrFileNotFound      = errors.New("file not found")
 )

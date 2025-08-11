@@ -24,6 +24,7 @@ type Server struct {
 	sessionStore   session.Store
 	router         *gin.Engine
 	bookRepository domain.BookRepository
+	fileRepository domain.FileRepository
 }
 
 func New(
@@ -32,6 +33,7 @@ func New(
 	sessionStore session.Store,
 	g *genkit.Genkit,
 	bookRepository domain.BookRepository,
+	fileRepository domain.FileRepository,
 ) *Server {
 	router := gin.Default()
 	router.Static("/static", "./static")
@@ -54,6 +56,7 @@ func New(
 		router:         router,
 		sessionStore:   sessionStore,
 		bookRepository: bookRepository,
+		fileRepository: fileRepository,
 	}
 
 	router.SetTrustedProxies(nil)
