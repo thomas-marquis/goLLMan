@@ -229,7 +229,7 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		if err != nil {
 			os.Remove(tempFilePath)
 			if errors.Is(domain.ErrBookAlreadyExists, err) {
-				c.HTML(http.StatusBadRequest, "", components.Toast(
+				c.HTML(http.StatusOK, "", components.Toast(
 					components.ToastLevelInfo, "Book already exists",
 					"A book with the same title and author already exists in the library"))
 				return

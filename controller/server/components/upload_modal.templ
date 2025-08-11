@@ -26,6 +26,19 @@ templ UploadEpubModal() {
 					fileNameElement.textContent = droppedFile.name;
 					document.getElementById('file-name').classList.remove('hidden');
 				}
+			},
+			handleFileSelect(event) {
+				if (!event.target.files.length) return;
+
+				const selectedFile = event.target.files[0];
+				if (selectedFile && selectedFile.name.endsWith('.epub')) {
+					this.file = selectedFile;
+
+					// Display the file name in the UI
+					const fileNameElement = document.getElementById('selected-file-name');
+					fileNameElement.textContent = selectedFile.name;
+					document.getElementById('file-name').classList.remove('hidden');
+				}
 			}
 		}"
 		:class="{ '*:cursor-alias': dragover }"
@@ -78,6 +91,7 @@ templ UploadEpubModal() {
 							accept=".epub"
 							class="hidden"
 							required
+							@change="handleFileSelect"
 						/>
 					</label>
 				</div>
