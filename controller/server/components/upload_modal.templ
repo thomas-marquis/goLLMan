@@ -1,9 +1,45 @@
 package components
 
 templ UploadEpubModal() {
-    <div id="upload-epub-modal"
+    <div
+        id="upload-epub-modal"
         hx-swap-oob="true"
         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        x-data="{
+            dragover: false,
+            drop(event) {
+              if (!event.dataTransfer.items) return
+
+              const form = document.getElementById('form-upload')
+              const formData = new FormData(form)
+
+              for (let item of event.dataTransfer.items) {
+                if (item.kind === 'file') {
+                  const file = item.getAsFile()
+                  if (file && file.name.endsWith('.epub')) {
+                    formData.append('epub-file', file)
+                  }
+                }
+                break
+              }
+
+              fetch('/books/upload', {
+                method: 'POST',
+                body: formData
+              })
+              .then(response => response.json())
+              .then(data => {
+                console.log('Success:', data);
+              })
+              .catch(error => {
+                console.error('Error:', error);
+              });
+            }
+        }"
+        :class="{ '*:cursor-alias': dragover }"
+        @dragover.prevent="dragover = true"
+        @dragleave.prevent="dragover = false"
+        @drop.prevent="drop"
     >
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-4">
