@@ -8,9 +8,14 @@ import (
 	"github.com/pgvector/pgvector-go"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure/orm"
+	"github.com/timsims/pamphlet"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"strconv"
+)
+
+const (
+	bookMetaLocalEpubPathKey = "local_epub_filepath"
 )
 
 type BookRepositoryPostgres struct {
@@ -153,4 +158,24 @@ func (r *BookRepositoryPostgres) Retrieve(ctx context.Context, book domain.Book,
 	}
 
 	return documents, nil
+}
+
+func parseEpubFromFile(filePath string) (domain.Book, error) {
+	parser, err := pamphlet.Open(filePath)
+	if err != nil {
+		return domain.Book{}, fmt.Errorf("error opening epub at %s: %w", filePath, err)
+	}
+
+	book := parser.GetBook()
+	if book == nil {
+		return domain.Book{}, fmt.Errorf("no book found in epub at %s", filePath)
+	}
+
+	return domain.Book{
+		Title:  book.Title,
+		Author: book.Author,
+		Metadata: map[string]any{
+			bookMetaLocalEpubPathKey: filePath,
+		},
+	}, nil
 }
