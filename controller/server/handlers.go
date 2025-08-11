@@ -142,6 +142,12 @@ func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *
 	})
 }
 
+func (d *Server) NotificationHandlers(r *gin.Engine) {
+	r.GET("notifications/end", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "", "")
+	})
+}
+
 func (s *Server) UploadBookHandler(r *gin.Engine) {
 	r.GET("books/upload/open", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "", components.UploadEpubModal())

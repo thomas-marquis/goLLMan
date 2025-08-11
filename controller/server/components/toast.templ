@@ -1,0 +1,69 @@
+package components
+
+import "github.com/thomas-marquis/goLLMan/controller/server/components/icons"
+
+type ToastLevel string
+
+const (
+	ToastLevelSuccess ToastLevel = "success"
+	ToastLevelInfo    ToastLevel = "info"
+	ToastLevelWarning ToastLevel = "warning"
+	ToastLevelError   ToastLevel = "error"
+)
+
+func getToastClasses(level ToastLevel) (classes string, icon templ.Component) {
+	icon = icons.Info()
+
+	switch level {
+	case ToastLevelSuccess:
+		classes = "bg-green-100 border-l-4 border-green-500 text-green-700 p-4"
+		icon = icons.Success()
+	case ToastLevelInfo:
+		classes = "bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4"
+	case ToastLevelWarning:
+		classes = "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4"
+		icon = icons.Warning()
+	case ToastLevelError:
+		classes = "bg-red-100 border-l-4 border-red-500 text-red-700 p-4"
+		icon = icons.Error()
+	}
+	return
+}
+
+templ Toast(level ToastLevel, title string, message string) {
+	{{ classes, icon := getToastClasses(level) }}
+	<div
+		hx-trigger="load delay:5s"
+		hx-swap="delete"
+		hx-get="/notifications/end"
+		class={"w-full rounded shadow-lg", classes}
+		x-data="{ show: true }"
+		x-show="show"
+		x-init="setTimeout(() => show = false, 5000)"
+		x-transition:leave="transition ease-in duration-300"
+		x-transition:leave-start="opacity-100"
+		x-transition:leave-end="opacity-0"
+	>
+		<div class="flex items-start">
+			<div class="flex-shrink-0">
+			    @icon
+			</div>
+			<div class="ml-3">
+				<p class="text-sm font-medium">{ title }</p>
+				<p class="text-sm">{ message }</p>
+			</div>
+			<div class="pl-3 ml-auto">
+				<div class="-mx-1.5 -my-1.5">
+					<button
+						type="button"
+						class="inline-flex rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-600"
+						@click="show = false"
+					>
+						<span class="sr-only">Dismiss</span>
+                        @icons.Close()
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}

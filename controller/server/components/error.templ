@@ -1,7 +1,6 @@
 package components
 
+// Maintenu pour la compatibilité avec le code existant, utilise le nouveau composant Toast en interne
 templ ErrorBanner(message string) {
-    <div>
-        <p>EERROR: {message}</p>
-    </div>
+    @Toast(ToastLevelError, "Error", message)
 }

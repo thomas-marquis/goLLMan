@@ -70,6 +70,7 @@ func New(
 	s.ToggleBookSelectionHandler(router)
 	s.UploadBookHandler(router)
 	s.FlowsHandlers(router, g)
+	s.NotificationHandlers(router)
 
 	return s
 }

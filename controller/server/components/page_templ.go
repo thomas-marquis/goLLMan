@@ -31,7 +31,27 @@ func Page(initialBooks []domain.Book) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"fr\" class=\"h-full\"><head><title>GoLLMan App | Chat With Books</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js\" integrity=\"sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm\" crossorigin=\"anonymous\"></script><script src=\"https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.2\" integrity=\"sha384-yhS+rWHB2hwrHEg86hWiQV7XL6u+PH9X+3BlmS2+CNBaGYU8Nd7RZ2rZ9DWXgTdr\" crossorigin=\"anonymous\"></script><script src=\"https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js\" defer></script><script src=\"https://cdn.tailwindcss.com\"></script><script>\n            tailwind.config = {\n                darkMode: 'class',\n                theme: {\n                    extend: {\n                        colors: {\n                            primary: {\n                                100: '#F2DBD5',\n                                200: '#F2B3CA',\n                                300: '#F2B705',\n                                400: '#F26B5E',\n                                500: '#80A6F2',\n                            }\n                        }\n                    }\n                }\n            }\n        </script></head><body class=\"h-full bg-primary-100 dark:bg-gray-800\" x-data=\"{\n            darkMode: localStorage.getItem('darkMode') === 'true',\n        }\" x-init=\"\n            $watch('darkMode', val => {\n                localStorage.setItem('darkMode', val);\n                document.documentElement.classList.toggle('dark', val);\n            });\n            darkMode && document.documentElement.classList.add('dark');\n        \"><header class=\"w-full bg-primary-500 text-white p-4 flex justify-between items-center\"><h1 class=\"text-xl font-bold\">Chat with GoLLM</h1><button class=\"p-2 rounded-full bg-primary-300 text-white\" @click=\"darkMode = !darkMode\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z\"></path></svg></button></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"fr\" class=\"h-full\"><head><title>GoLLMan App | Chat With Books</title><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><script src=\"https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js\" integrity=\"sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm\" crossorigin=\"anonymous\"></script><script src=\"https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.2\" integrity=\"sha384-yhS+rWHB2hwrHEg86hWiQV7XL6u+PH9X+3BlmS2+CNBaGYU8Nd7RZ2rZ9DWXgTdr\" crossorigin=\"anonymous\"></script><script src=\"https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js\" defer></script><script src=\"https://cdn.tailwindcss.com\"></script><script>\n            tailwind.config = {\n                darkMode: 'class',\n                theme: {\n                    extend: {\n                        colors: {\n                            primary: {\n                                100: '#F2DBD5',\n                                200: '#F2B3CA',\n                                300: '#F2B705',\n                                400: '#F26B5E',\n                                500: '#80A6F2',\n                            }\n                        }\n                    }\n                }\n            }\n        </script></head><body class=\"h-full bg-primary-100 dark:bg-gray-800\" x-data=\"{\n            darkMode: localStorage.getItem('darkMode') === 'true',\n        }\" x-init=\"\n            $watch('darkMode', val => {\n                localStorage.setItem('darkMode', val);\n                document.documentElement.classList.toggle('dark', val);\n            });\n            darkMode && document.documentElement.classList.add('dark');\n        \"><header class=\"w-full bg-primary-500 text-white p-4 flex justify-between items-center\"><h1 class=\"text-xl font-bold\">Chat with GoLLM</h1><button class=\"p-2 rounded-full bg-primary-300 text-white\" @click=\"darkMode = !darkMode\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z\"></path></svg></button></header><div id=\"toasts-container\" class=\"fixed top-4 right-4 z-50 w-full max-w-xs space-y-4\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = Toast(ToastLevelInfo, "Titre", "ceci est un message de la plus haute importance!").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = Toast(ToastLevelSuccess, "Titre", "ceci est un message de la plus haute importance!").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = Toast(ToastLevelError, "Titre", "ceci est un message de la plus haute importance!").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = Toast(ToastLevelWarning, "Titre", "ceci est un message de la plus haute importance!").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<!-- Toasts will be inserted and then removed here --></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,7 +59,7 @@ func Page(initialBooks []domain.Book) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex h-[calc(100%-4rem)]\"><aside class=\"w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-md\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex h-[calc(100%-4rem)]\"><aside class=\"w-64 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-md\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -47,7 +67,7 @@ func Page(initialBooks []domain.Book) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</aside><main class=\"flex-1 flex flex-col h-full\"><div id=\"messages-container\" class=\"flex-1 overflow-y-auto p-4 space-y-4 relative\"><div hx-ext=\"sse\" id=\"messages\" sse-connect=\"/stream\" sse-swap=\"message\" hx-swap=\"beforeend scroll:#messages-container:bottom\" class=\"space-y-4\"><!-- Messages will be loaded here --></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</aside><main class=\"flex-1 flex flex-col h-full\"><div id=\"messages-container\" class=\"flex-1 overflow-y-auto p-4 space-y-4 relative\"><div hx-ext=\"sse\" id=\"messages\" sse-connect=\"/stream\" sse-swap=\"message\" hx-swap=\"beforeend scroll:#messages-container:bottom\" class=\"space-y-4\"><!-- Messages will be loaded here --></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -55,7 +75,7 @@ func Page(initialBooks []domain.Book) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><form class=\"flex p-4 bg-primary-100 dark:bg-gray-700\" hx-post=\"/messages\" hx-trigger=\"submit\" hx-swap=\"none\"><input type=\"text\" name=\"question\" class=\"flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-300 dark:bg-gray-600 dark:text-white\" placeholder=\"Ask anything\" required> <button type=\"submit\" class=\"bg-primary-500 text-white p-2 rounded-r-lg hover:bg-primary-400\">Send</button></form></main></div></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><form class=\"flex p-4 bg-primary-100 dark:bg-gray-700\" hx-post=\"/messages\" hx-trigger=\"submit\" hx-swap=\"none\"><input type=\"text\" name=\"question\" class=\"flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-300 dark:bg-gray-600 dark:text-white\" placeholder=\"Ask anything\" required> <button type=\"submit\" class=\"bg-primary-500 text-white p-2 rounded-r-lg hover:bg-primary-400\">Send</button></form></main></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

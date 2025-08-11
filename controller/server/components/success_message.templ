@@ -2,13 +2,7 @@ package components
 
 import "github.com/thomas-marquis/goLLMan/internal/domain"
 
+// Maintenu pour la compatibilité avec le code existant, utilise le nouveau composant Toast en interne
 templ SuccessMessage(message string, book domain.Book) {
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 dark:bg-green-900 dark:text-green-300 dark:border-green-700" role="alert">
-        <strong class="font-bold">Success: </strong>
-        <span class="block sm:inline">{message}</span>
-        <div class="mt-2">
-            <p><strong>Title:</strong> {book.Title}</p>
-            <p><strong>Author:</strong> {book.Author}</p>
-        </div>
-    </div>
+    @Toast(ToastLevelSuccess, "Success", message + " - " + book.Title + " by " + book.Author)
 }
