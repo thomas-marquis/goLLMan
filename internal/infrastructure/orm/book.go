@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"fmt"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"gorm.io/datatypes"
 )
@@ -14,6 +13,7 @@ type Book struct {
 	Selected bool   `gorm:"not null;default:false"`
 	FileName string
 	Metadata datatypes.JSONMap `gorm:"type:jsonb"`
+	Status   string
 }
 
 // ToDomain converts the ORM entity to domain entity
@@ -27,21 +27,24 @@ func (b Book) ToDomain() domain.Book {
 		File: domain.File{
 			Name: b.FileName,
 		},
+		Status: domain.StatusFromString(b.Status),
 	}
 }
 
 // BookFromDomain creates an ORM entity from domain entity
 func BookFromDomain(book domain.Book) (*Book, error) {
-	return &Book{
+	b := &Book{
 		Title:    book.Title,
 		Author:   book.Author,
 		Metadata: book.Metadata,
 		Selected: book.Selected,
 		FileName: book.File.Name,
-	}, nil
-}
+		Status:   book.Status.String(),
+	}
 
-// Helper to convert uint ID to string
-func idToString(id uint) string {
-	return fmt.Sprintf("%d", id)
+	if book.ID != "" {
+		b.ID = stringToID(book.ID)
+	}
+
+	return b, nil
 }

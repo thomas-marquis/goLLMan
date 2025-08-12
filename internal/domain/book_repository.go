@@ -5,8 +5,9 @@ import "context"
 type BookRepository interface {
 	List(ctx context.Context) ([]Book, error)
 	ListSelected(ctx context.Context) ([]Book, error)
-	Add(ctx context.Context, title, author string, file File, metadata map[string]any) (Book, error)
+	Add(ctx context.Context, title, author string, file File, metadata map[string]any, options ...BookOption) (Book, error)
 	GetByID(ctx context.Context, id string) (Book, error)
 	GetByTitleAndAuthor(ctx context.Context, title, author string) (Book, error)
 	ReadFromFile(ctx context.Context, file *FileWithContent) (Book, error)
+	Update(ctx context.Context, book Book) error
 }

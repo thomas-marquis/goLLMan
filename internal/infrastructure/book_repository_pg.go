@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/firebase/genkit/go/ai"
 	"github.com/pgvector/pgvector-go"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
@@ -12,11 +14,6 @@ import (
 	"github.com/timsims/pamphlet"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"strconv"
-)
-
-const (
-	bookMetaLocalEpubPathKey = "local_epub_filepath"
 )
 
 type BookRepositoryPostgres struct {
@@ -70,7 +67,13 @@ func (r *BookRepositoryPostgres) ListSelected(ctx context.Context) ([]domain.Boo
 	return books, nil
 }
 
-func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, file domain.File, metadata map[string]any) (domain.Book, error) {
+func (r *BookRepositoryPostgres) Add(
+	ctx context.Context,
+	title, author string,
+	file domain.File,
+	metadata map[string]any,
+	options ...domain.BookOption,
+) (domain.Book, error) {
 	// Check if the book already exists
 	var book domain.Book
 	var err error
@@ -94,6 +97,10 @@ func (r *BookRepositoryPostgres) Add(ctx context.Context, title, author string, 
 		Author:   author,
 		Metadata: metadata,
 		File:     file,
+	}
+
+	for _, option := range options {
+		option(&domainBook)
 	}
 
 	ormBook, err := orm.BookFromDomain(domainBook)
@@ -129,12 +136,14 @@ func (r *BookRepositoryPostgres) GetByID(ctx context.Context, id string) (domain
 
 func (r *BookRepositoryPostgres) GetByTitleAndAuthor(ctx context.Context, title, author string) (domain.Book, error) {
 	var ormBook orm.Book
-	result := r.db.WithContext(ctx).Where("title = ? AND author = ?", title, author).First(&ormBook)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if err := r.db.
+		WithContext(ctx).
+		Where("title = ? AND author = ?", title, author).
+		First(&ormBook).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.Book{}, domain.ErrBookNotFound
 		}
-		return domain.Book{}, errors.Join(domain.ErrRepositoryError, result.Error)
+		return domain.Book{}, errors.Join(domain.ErrRepositoryError, err)
 	}
 
 	return ormBook.ToDomain(), nil
@@ -158,11 +167,25 @@ func (r *BookRepositoryPostgres) ReadFromFile(ctx context.Context, file *domain.
 	}, nil
 }
 
-func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
-	bi := orm.BookPart{
-		Content:   content,
-		Embedding: pgvector.NewVector(vector),
+func (r *BookRepositoryPostgres) Update(ctx context.Context, book domain.Book) error {
+	if book.ID == "" {
+		return errors.Join(domain.ErrRepositoryError, fmt.Errorf("book id is empty"))
 	}
+
+	ormBook, err := orm.BookFromDomain(book)
+	if err != nil {
+		return errors.Join(domain.ErrRepositoryError, fmt.Errorf("failed to convert book to orm book: %w", err))
+	}
+
+	if err := r.db.WithContext(ctx).Save(&ormBook).Error; err != nil {
+		return errors.Join(domain.ErrRepositoryError, fmt.Errorf("failed to update book: %w", err))
+	}
+
+	return nil
+}
+
+func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
+	bi := orm.NewBookPart(book, content, vector)
 	if err := r.db.WithContext(ctx).Create(&bi).Error; err != nil {
 		return fmt.Errorf("failed to create book index: %w", err)
 	}
