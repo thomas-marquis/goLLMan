@@ -1,7 +1,7 @@
 services:
-  db:
+  db-dev:
     image: pgvector/pgvector:pg17
-    container_name: pgvector-db
+    container_name: pgvector-db-dev
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -9,7 +9,19 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pg-data-dev:/var/lib/postgresql/data
+  db-staging:
+    image: pgvector/pgvector:pg17
+    container_name: pgvector-db-staging
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: gollman
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-data-staging:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
+  pg-data-dev:
+  pg-data-staging:

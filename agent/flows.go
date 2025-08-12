@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
@@ -31,8 +30,6 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 	if err := a.bookRepository.Update(ctx, book); err != nil {
 		pkg.Logger.Printf("Error updating book status to indexing: %s\n", err)
 	}
-
-	time.Sleep(10 * time.Second)
 
 	parts, err := genkit.Run(ctx, "loadDocuments", func() ([]*ai.Document, error) {
 		file, err := a.fileRepository.Load(ctx, book.File)

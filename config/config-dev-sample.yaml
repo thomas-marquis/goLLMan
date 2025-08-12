@@ -1,0 +1,21 @@
+mistral:
+  apiKey:
+  timeout: "15s"
+  maxReqPerSec: 6
+
+postgres:
+  host: localhost
+  port: "5432"
+  user: postgres
+  password: password
+  database: gollman
+
+fileStore:
+  local:
+    path: uploads
+
+agent:
+  docstore: pgvector
+  sessionMessageLimit: 10
+  embeddingModel: mistral/fake-embed
+  completionModel: mistral/fake-completion

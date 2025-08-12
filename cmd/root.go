@@ -64,7 +64,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "secret.yaml",
-		"config file (default is ./secret.yaml)")
+		"config file (default is ./config/config-dev.yaml)")
 
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "enable verbose output")
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
