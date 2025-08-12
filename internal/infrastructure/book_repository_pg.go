@@ -184,9 +184,17 @@ func (r *BookRepositoryPostgres) Update(ctx context.Context, book domain.Book) e
 	return nil
 }
 
-func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, content string, vector []float32) error {
-	bi := orm.NewBookPart(book, content, vector)
-	if err := r.db.WithContext(ctx).Create(&bi).Error; err != nil {
+func (r *BookRepositoryPostgres) Index(ctx context.Context, book domain.Book, contents []string, vectors [][]float32) error {
+	if len(contents) != len(vectors) {
+		return errors.New("contents and vectors must have the same length")
+	}
+
+	parts := make([]*orm.BookPart, len(contents), len(contents))
+	for i, content := range contents {
+		parts[i] = orm.NewBookPart(book, content, vectors[i])
+	}
+
+	if err := r.db.WithContext(ctx).Create(&parts).Error; err != nil {
 		return fmt.Errorf("failed to create book index: %w", err)
 	}
 	return nil

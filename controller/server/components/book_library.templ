@@ -6,19 +6,30 @@ import "github.com/thomas-marquis/goLLMan/internal/domain"
 templ bookItem(book domain.Book) {
     <div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-primary-100 dark:hover:bg-gray-700 transition-colors">
         <div class="flex items-center mr-2">
-            <input
-                type="checkbox"
-                id={"book-" + book.ID}
-                checked?={book.Selected}
-                class="w-4 h-4 text-primary-500 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-400 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                hx-post={"/books/" + book.ID + "/toggle"}
-                hx-swap="none"
-            />
+            <label for={"book-" + book.ID} class="inline-flex items-center cursor-pointer group">
+                <input
+                    type="checkbox"
+                    id={"book-" + book.ID}
+                    checked?={book.Selected}
+                    disabled?={book.Status != domain.StatusIndexed}
+                    class="peer sr-only"
+                    hx-post={"/books/" + book.ID + "/toggle"}
+                    hx-trigger="change"
+                    hx-swap="none"
+                />
+                <span class="w-5 h-5 rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 flex items-center justify-center transition-all ring-1 ring-transparent group-hover:ring-primary-300 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-checked:bg-primary-500 peer-checked:border-primary-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white opacity-0 transition-opacity duration-150 peer-checked:opacity-100" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8.5 12.086l6.793-6.793a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+            </label>
         </div>
         <div class="flex-1">
             <h3 class="text-sm font-medium text-gray-900 dark:text-white">{book.Title}</h3>
             <div class="flex items-center mt-1">
                 switch book.Status {
+                case domain.StatusNew:
+                   <span class="px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">New</span>
                 case domain.StatusIndexing:
                    <span class="px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Indexing</span>
                 case domain.StatusIndexed:
@@ -34,9 +45,26 @@ templ bookItem(book domain.Book) {
 }
 
 templ BookCard(book domain.Book) {
-    <div hx-swap-oob="beforeend:#library-container">
-        @bookItem(book)
-    </div>
+    switch book.Status {
+    case domain.StatusNew:
+        <div hx-swap-oob="beforeend:#library-container">
+            <div  id={"book-" + book.ID}>
+                <div hx-trigger="every 2s" hx-get={"/books/" + book.ID} hx-swap="outerHTML">
+                    @bookItem(book)
+                </div>
+            </div>
+        </div>
+    case domain.StatusIndexing:
+        <div hx-swap-oob="true" id={"book-" + book.ID}>
+            <div hx-trigger="every 2s" hx-get={"/books/" + book.ID} hx-swap="outerHTML">
+                @bookItem(book)
+            </div>
+        </div>
+    case domain.StatusIndexed, domain.StatusError:
+        <div hx-swap-oob="true" id={"book-" + book.ID}>
+            @bookItem(book)
+        </div>
+    }
 }
 
 templ BooksLibrary(books []domain.Book) {

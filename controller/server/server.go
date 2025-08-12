@@ -2,9 +2,12 @@ package server
 
 import (
 	"fmt"
+
 	genkit_core "github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
+
+	"log"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -13,23 +16,29 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/controller/server/gintemplrenderer"
 	"github.com/thomas-marquis/goLLMan/pkg"
-	"log"
+)
+
+const (
+	nbWorkers = 3
 )
 
 type Server struct {
 	port           string
 	host           string
-	flow           *genkit_core.Flow[agent.ChatbotInput, string, struct{}]
+	ragFlow        *genkit_core.Flow[agent.ChatbotInput, string, struct{}]
+	indexFlow      *genkit_core.Flow[domain.Book, any, struct{}]
 	cfg            agent.Config
 	sessionStore   session.Store
 	router         *gin.Engine
 	bookRepository domain.BookRepository
 	fileRepository domain.FileRepository
+	backgroundWork chan Work
 }
 
 func New(
 	cfg agent.Config,
-	flow *genkit_core.Flow[agent.ChatbotInput, string, struct{}],
+	ragFlow *genkit_core.Flow[agent.ChatbotInput, string, struct{}],
+	indexFlow *genkit_core.Flow[domain.Book, any, struct{}],
 	sessionStore session.Store,
 	g *genkit.Genkit,
 	bookRepository domain.BookRepository,
@@ -48,15 +57,21 @@ func New(
 
 	go stream.listen()
 
+	bkgWorkChan := make(chan Work)
+	done := make(chan struct{})
+	StartBackgroundWorkers(nbWorkers, bkgWorkChan, done)
+
 	s := &Server{
 		port:           "3400",
 		host:           "127.0.0.1",
-		flow:           flow,
+		ragFlow:        ragFlow,
+		indexFlow:      indexFlow,
 		cfg:            cfg,
 		router:         router,
 		sessionStore:   sessionStore,
 		bookRepository: bookRepository,
 		fileRepository: fileRepository,
+		backgroundWork: bkgWorkChan,
 	}
 
 	router.SetTrustedProxies(nil)
@@ -74,6 +89,7 @@ func New(
 	s.UploadBookHandler(router)
 	s.FlowsHandlers(router, g)
 	s.NotificationHandlers(router)
+	s.GetBookHandler(router)
 
 	return s
 }

@@ -2,10 +2,12 @@ package infrastructure
 
 import (
 	"context"
-	"github.com/thomas-marquis/goLLMan/internal/domain"
-	"github.com/thomas-marquis/goLLMan/pkg"
+	"io"
 	"os"
 	"strings"
+
+	"github.com/thomas-marquis/goLLMan/internal/domain"
+	"github.com/thomas-marquis/goLLMan/pkg"
 )
 
 const (
@@ -63,8 +65,8 @@ func (f *FileLocalStore) Load(ctx context.Context, file domain.File) (*domain.Fi
 	}
 	defer ff.Close()
 
-	var content []byte
-	if _, err := ff.Read(content); err != nil {
+	content, err := io.ReadAll(ff)
+	if err != nil {
 		return nil, err
 	}
 

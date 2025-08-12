@@ -6,5 +6,5 @@ import (
 )
 
 type BookLoader interface {
-	Load(book domain.Book) ([]*ai.Document, error)
+	Load(book domain.Book, file *domain.FileWithContent) ([]*ai.Document, error)
 }

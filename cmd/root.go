@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/agent"
@@ -12,7 +14,6 @@ import (
 	"github.com/thomas-marquis/goLLMan/internal/infrastructure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"os"
 )
 
 const (
@@ -124,7 +125,7 @@ func initConfig() {
 
 	fileRepository = infrastructure.NewFileLocalStore(viper.GetString("fileStore.local.path"))
 
-	mainAgent = agent.New(agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore)
+	mainAgent = agent.New(agentConfig, sessionStore, docLoader, bookRepository, bookVectorStore, fileRepository)
 }
 
 func initPgGormDB(cfg pgConfig) (*gorm.DB, error) {

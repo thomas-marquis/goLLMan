@@ -21,3 +21,4 @@ An agentic thinking application written in go.
 | TailwindCSS    | For UI style                                                  | [Documentation](https://tailwindcss.com/docs/styling-with-utility-classes)                                                                         |
 | HTMX           | When you don't like JS...                                     | [Documentation](https://htmx.org/docs/)                                                                                                            |
 | Alpine JS      | ...but you still don't have a choice                          | [Documentation](https://alpinejs.dev/start-here)                                                                                                   |
+| go-snap        | Snapshot testing in Go                                        | [Documentation](https://github.com/gkampitakis/go-snaps)                                                                                           |

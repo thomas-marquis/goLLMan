@@ -1,0 +1,251 @@
+
+[TestSplitDocuments_Snapshot - 1]
+[]agent.SnapDoc{
+    {
+        Text:     "---",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "## title: \"A Tale of Many Formats\"\nauthor: \"J. Doe\"\ndate: 2025-08-12",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\nThis is the introduction paragraph. It should not be considered a heading. It sets the stage for a long text that includes many different markdown constructs and is intended for testing text splitting logic.",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n- Chapter 1\n  - Motivation\n  - Setup\n  - Samples\n- Chapter 2\n  - Deep Dive\n  - Case Studies\n- Chapter 3\n  - Cross-cutting Concerns\n  - Appendices\n- Appendix\n> Blockquote with some commentary.\n> It spans multiple lines.\n> It might include a link like [https://example.com](https://example.com) and some inline `code`.",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n\n---",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 1: Getting Started\nHere is a paragraph with a [link](https://example.com) and an image:\n![Alt text](image.png \"Optional title\")\nWe also have inline code like `fmt.Println(\"hello\")` and bold/italic text.",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 1: Getting Started\n#### Motivation\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus aliquet, nisl at dictum varius, neque elit facilisis arcu, vitae tincidunt ipsum augue ac nibh. Sed sed malesuada lectus, et efficitur magna.\n- Why this book\n  - Practical value\n    - Real-world examples\n    - Clear explanations\n  - Theoretical background\n- Who should read this\n  - Beginners\n  - Intermediate users\n  - Advanced users",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 1: Getting Started\n#### Setup\n1. Install the necessary tools\n  1. Go 1.24\n  2. Git\n  3. Your favorite editor\n1. Clone the repository\n  - Using HTTPS\n  - Using SSH\n- Run the first example",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n```\nimport re\nfrom unittest.mock import MagicMock\n\nimport pandas as pd\nimport pytest\n\nfrom easy_testing.builders import DataFrameBuilder\nfrom easy_testing.dataframes import (\n    AssertFrame,\n    assert_called_once_with_frame,\n    assert_contains_line,\n    assert_contains_lines,\n    assert_frame_equals,\n    assert_frame_partially_equals,\n)\n\n\nclass TestAssertCalledOnceWithFrame:\n    def test_should_assert_mock_called_once_with_dataframe(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(df)\n\n        # Then\n        assert_called_once_with_frame(mock.my_method, df)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# Then\n        assert_called_once_with_frame(mock.my_method, df)\n\n    def test_should_assert_mock_called_once_with_dataframe_and_assert_frame_equals_kwargs(self):\n        # Given\n        mock = MagicMock()\n        actual_df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        actual_df.astype({\"age\": \"float64\", \"job\": \"string\"})\n\n        expected_df = pd.DataFrame(\n            [\n                (\"lolo\", 13, \"photograph\"),\n                (\"toto\", 12, \"developer\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        expected_df.astype({\"age\": \"int32\", \"job\": \"category\"})\n\n        # When\n        mock.my_method(actual_df)\n\n        # Then\n        assert_called_once_with_frame(\n            mock.my_method, AssertFrame(expected_df, check_dtype=False, check_row_order=False)\n        )",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_handle_multiple_args(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(1, df, \"toto\")\n\n        # Then\n        assert_called_once_with_frame(mock.my_method, 1, df, \"toto\")\n\n    def test_should_handle_multiple_args_and_kwargs(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(1, df, \"toto\", a=1, b=df)\n\n        # Then\n        assert_called_once_with_frame(mock.my_method, 1, df, \"toto\", a=1, b=AssertFrame(df))",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_assertion_error_when_kwargs_df_values_mismatch(self):\n        # Given\n        mock = MagicMock()\n        actual_df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        expected_df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(b=actual_df, c=2)\n\n        # Then\n        with pytest.raises(AssertionError):\n            assert_called_once_with_frame(mock.my_method, b=expected_df, c=2)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_assertion_error_when_non_df_kwarg_value_mismatch(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(b=df, c=2)\n\n        # Then\n        with pytest.raises(AssertionError, match=re.escape(\"Expected c=3 but got c=2\")):\n            assert_called_once_with_frame(mock.my_method, b=df, c=3)\n\n    def test_should_raise_assertion_error_when_mock_not_called(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        with pytest.raises(AssertionError, match=re.escape(\"Expected to be called once but was called 0 times\")):\n            assert_called_once_with_frame(mock.my_method, df)\n\n    def test_should_raise_assertion_error_when_not_same_args_number(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(df)\n\n        # Then\n        with pytest.raises(AssertionError, match=re.escape(\"Expected 2 argument(s) but got 1\")):\n            assert_called_once_with_frame(mock.my_method, df, \"toto\")",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_assertion_error_when_mismatch_kwargs_number_an_keys(self):\n        # Given\n        mock = MagicMock()\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        mock.my_method(1, a=df, b=1)\n\n        # Then\n        with pytest.raises(AssertionError, match=re.escape(\"Expected keyword argument(s) x, y, z but got a, b\")):\n            assert_called_once_with_frame(mock.my_method, 1, x=df, y=1, z=2)\n\n\nclass TestAssertContainsLine:\n    def test_should_return_none_when_given_line_is_present(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        res = assert_contains_line(df, (\"toto\", 12, \"developer\"))",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When\n        res = assert_contains_line(df, (\"toto\", 12, \"developer\"))\n\n        # Then\n        assert res is None\n\n    def test_should_return_none_when_given_line_is_present_multiple_times(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n                (\"toto\", 12, \"developer\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        res = assert_contains_line(df, (\"toto\", 12, \"developer\"))\n\n        # Then\n        assert res is None\n\n    def test_should_raise_when_given_line_is_not_present(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        with pytest.raises(\n            AssertionError, match=re.escape(\"Expected line <name=toto, age=12, job=photograph> not found in dataframe\")\n        ):\n            assert_contains_line(df, (\"toto\", 12, \"photograph\"))\n\n    def test_should_raise_when_given_line_is_not_present_at_all(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError, match=re.escape(\"Expected line <name=tata, age=45, job=seller> not found in dataframe\")\n        ):\n            assert_contains_line(df, (\"tata\", 45, \"seller\"))\n\n    def test_should_raise_when_dataframe_is_empty(self):\n        # Given\n        df = pd.DataFrame([], columns=[\"name\", \"age\", \"job\"])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        with pytest.raises(\n            AssertionError, match=re.escape(\"Expected line <name=tata, age=45, job=seller> not found in dataframe\")\n        ):\n            assert_contains_line(df, (\"tata\", 45, \"seller\"))\n\n    def test_should_raise_value_error_when_line_size_mismatch(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(ValueError, match=re.escape(\"Line size mismatch: expected 3, got 2\")):\n            assert_contains_line(df, (\"tata\", 45))",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\nclass TestAssertContainsLines:\n    def test_should_return_none_when_all_lines_are_present(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        res = assert_contains_lines(df, [(\"toto\", 12, \"developer\"), (\"lolo\", 13, \"photograph\")])\n\n        # Then\n        assert res is None\n\n    def test_should_raise_when_one_line_is_not_present(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        with pytest.raises(\n            AssertionError, match=re.escape(\"Expected line <name=tata, age=45, job=seller> not found in dataframe\")\n        ):\n            assert_contains_lines(df, [(\"toto\", 12, \"developer\"), (\"tata\", 45, \"seller\")])\n\n    def test_should_raise_when_multiple_lines_are_not_present(self):\n        # Given\n        df = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n                (\"michou\", 23, \"soldier\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n            match=re.escape(\n                \"Expected lines <name=tata, age=45, job=seller>, <name=joe, age=34, job=driver> not found in dataframe\"\n            ),\n        ):\n            assert_contains_lines(df, [(\"tata\", 45, \"seller\"), (\"joe\", 34, \"driver\")])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\nclass TestAssertPartialFrameEquals:\n    def test_should_assert_2_df_are_equals_for_given_columns(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"cop\"),\n                (\"lolo\", 13, \"doctor\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When\n        res = assert_frame_partially_equals(df1, df2, [\"name\", \"age\"])\n\n        # Then\n        assert res is None",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# Then\n        assert res is None\n\n    def test_should_assert_2_df_are_not_equals_for_given_columns(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"cop\"),\n                (\"lolo\", 13, \"doctor\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_partially_equals(df1, df2, [\"age\", \"job\"])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_when_given_columns_are_not_present_in_left_df(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"anciennete\", \"travail\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"cop\"),\n                (\"lolo\", 13, \"doctor\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            ValueError,\n            match=r\"Column\\(s\\) ('age'|'job'), ('age'|'job') not found in left dataframe\",\n        ):\n            assert_frame_partially_equals(df1, df2, [\"age\", \"job\"])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_when_given_columns_are_not_present_in_right_df(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"cop\"),\n                (\"lolo\", 13, \"doctor\"),\n            ],\n            columns=[\"name\", \"anciennete\", \"travail\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            ValueError,\n            match=r\"Column\\(s\\) ('age'|'job'), ('age'|'job') not found in right dataframe\",\n        ):\n            assert_frame_partially_equals(df1, df2, [\"name\", \"age\", \"job\"])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_column_type_ignored(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12.0, \"cop\"),\n                (\"lolo\", 13.0, \"doctor\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        assert_frame_partially_equals(df1, df2, [\"name\", \"age\"], check_dtype=False)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_when_column_type_not_ignored(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"toto\", 12.0, \"cop\"),\n                (\"lolo\", 13.0, \"doctor\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_partially_equals(df1, df2, [\"name\", \"age\"], check_dtype=True)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_row_order_ignored(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"lolo\", 13, \"doctor\"),\n                (\"toto\", 12, \"cop\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        assert_frame_partially_equals(df1, df2, [\"name\", \"age\"], check_row_order=False)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_when_row_order_not_ignored(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"lolo\", 13, \"doctor\"),\n                (\"toto\", 12, \"cop\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_partially_equals(df1, df2, [\"name\", \"age\"], check_row_order=True)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_columns_are_not_in_same_order(self):\n        # Given\n        df1 = pd.DataFrame(\n            [\n                (\"toto\", 12, \"developer\"),\n                (\"lolo\", 13, \"photograph\"),\n            ],\n            columns=[\"name\", \"age\", \"job\"],\n        )\n        df2 = pd.DataFrame(\n            [\n                (\"cop\", 12, \"toto\"),\n                (\"doctor\", 13, \"lolo\"),\n            ],\n            columns=[\"job\", \"age\", \"name\"],\n        )\n\n        # When & Then\n        assert_frame_partially_equals(df1, df2, [\"name\", \"age\"])",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        assert_frame_partially_equals(df1, df2, [\"name\", \"age\"])\n\n\nclass TestAssertFrameEquals:\n    def test_should_assert_2_df_are_equals(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n\n        # When\n        res = assert_frame_equals(df1, df2)\n\n        # Then\n        assert res is None",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# Then\n        assert res is None\n\n    def test_should_raise_when_2_df_are_not_equals(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"doctor\"))\n            .build()\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_equals(df1, df2)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_raise_when_row_order_not_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .with_row((\"toto\", 12, \"developer\"))\n            .build()\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_equals(df1, df2, check_row_order=True)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_row_order_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .with_row((\"toto\", 12, \"developer\"))\n            .build()\n        )\n\n        # When & Then\n        assert_frame_equals(df1, df2, check_row_order=False)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        assert_frame_equals(df1, df2, check_row_order=False)\n\n    def test_should_raise_when_df_columns_are_different(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\", \"city\"])\n            .with_row((\"toto\", 12, \"developer\", \"Paris\"))\n            .with_row((\"lolo\", 13, \"photograph\", \"Lyon\"))\n            .build()\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n            match=re.escape(\n                \"Columns are different. left ones are ['age', 'job', 'name'] \"\n                \"and right ones are ['age', 'city', 'job', 'name']\"\n            ),\n        ):\n            assert_frame_equals(df1, df2)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_column_type_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12.0, \"developer\"))\n            .with_row((\"lolo\", 13.0, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n\n        # When & Then\n        assert_frame_equals(df1, df2, check_dtype=False)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        assert_frame_equals(df1, df2, check_dtype=False)\n\n    def test_should_raise_when_column_type_not_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12.0, \"developer\"))\n            .with_row((\"lolo\", 13.0, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_equals(df1, df2, check_dtype=True)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\ndef test_should_not_raise_when_columns_order_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"job\", \"age\", \"name\"])\n            .with_row((\"developer\", 12, \"toto\"))\n            .with_row((\"photograph\", 13, \"lolo\"))\n            .build()\n        )\n\n        # When & Then\n        assert_frame_equals(df1, df2, check_columns_order=False)",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n# When & Then\n        assert_frame_equals(df1, df2, check_columns_order=False)\n\n    def test_should_raise_when_columns_order_not_ignored(self):\n        # Given\n        df1 = (\n            DataFrameBuilder()\n            .with_columns([\"name\", \"age\", \"job\"])\n            .with_row((\"toto\", 12, \"developer\"))\n            .with_row((\"lolo\", 13, \"photograph\"))\n            .build()\n        )\n        df2 = (\n            DataFrameBuilder()\n            .with_columns([\"job\", \"age\", \"name\"])\n            .with_row((\"developer\", 12, \"toto\"))\n            .with_row((\"photograph\", 13, \"lolo\"))\n            .build()\n        )\n\n        # When & Then\n        with pytest.raises(\n            AssertionError,\n        ):\n            assert_frame_equals(df1, df2, check_columns_order=True)\n```",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\nEnvironment variables:\n- GOPATH=/usr/local/go\n- PATH includes $GOPATH/bin",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# A Tale of Many Formats\n## Table of Contents\n### Chapter 2: A loooong code bloc\n#### Code Samples (Go)\n\n```go\npackage main\n\nimport \"fmt\"\n\nfunc SplitDocuments(splitter textsplitter.TextSplitter, docs []*ai.Document) ([]*ai.Document, error) {\n\tpreparedDocs := make([]*ai.Document, 0)\n\tfor _, doc := range docs {\n\t\ttext := pkg.ContentToText(doc.Content)\n\t\tchunks, err := splitter.SplitText(text)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\n\t\tfor _, chunk := range chunks {\n\t\t\tif len(chunk) == 0 || OnlyContainsHeaders(chunk) {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tchunk = strings.TrimSpace(chunk)\n\t\t\tpreparedDocs = append(preparedDocs, ai.DocumentFromText(chunk, doc.Metadata))\n\t\t}\n\t}\n\treturn preparedDocs, nil\n}\n```",
+        Metadata: {
+            "source": "book_like.md",
+        },
+    },
+    {
+        Text:     "# Three leading spaces: valid heading\n\n    # Four leading spaces: this is a code block line, NOT a heading\n    \nText line followed by underline with too much indent:\n    ---\nThis should not be considered a setext heading because of 4 spaces.\nA setext heading with a blank line between:\nTitle\n\n---\nThis might be treated as a heading by our function.",
+        Metadata: {
+            "source": "tricky.md",
+        },
+    },
+}
+---

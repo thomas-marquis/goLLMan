@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/thomas-marquis/goLLMan/agent/session"
@@ -21,8 +23,25 @@ himself, so don't talk him about that. Just summarize and answer the question.`
 )
 
 func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, error) {
+	if book.Metadata == nil {
+		book.Metadata = make(map[string]any)
+	}
+
+	book.Status = domain.StatusIndexing
+	if err := a.bookRepository.Update(ctx, book); err != nil {
+		pkg.Logger.Printf("Error updating book status to indexing: %s\n", err)
+	}
+
+	time.Sleep(10 * time.Second)
+
 	parts, err := genkit.Run(ctx, "loadDocuments", func() ([]*ai.Document, error) {
-		docs, err := a.docLoader.Load(book)
+		file, err := a.fileRepository.Load(ctx, book.File)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load book content %s (%s): %w",
+				book.Title, book.Author, err)
+		}
+
+		docs, err := a.docLoader.Load(book, file)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load book %s (%s): %w",
 				book.Title, book.Author, err)
@@ -30,12 +49,39 @@ func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, 
 		return docs, nil
 	})
 	if err != nil {
+		book.Status = domain.StatusError
+		book.Metadata["error"] = err.Error()
+
+		if err := a.bookRepository.Update(ctx, book); err != nil {
+			pkg.Logger.Printf("Error updating book status: %s\n", err)
+		}
 		return nil, fmt.Errorf("failed to load documents from book %s (%s): %w",
 			book.Title, book.Author, err)
 	}
 
-	return genkit.Run(ctx, "indexDocuments", func() (any, error) {
-		return nil, indexDocuments(a.bookVectorStore, ctx, book, parts)
+	if _, err := genkit.Run(ctx, "indexDocuments", func() (any, error) {
+		if err := indexDocuments(a.embedder, a.bookVectorStore, ctx, book, parts); err != nil {
+			return nil, err
+		}
+
+		book.Status = domain.StatusIndexed
+		if err := a.bookRepository.Update(ctx, book); err != nil {
+			pkg.Logger.Printf("Error updating book status: %s\n", err)
+		}
+		return nil, nil
+	}); err != nil {
+		book.Status = domain.StatusError
+		book.Metadata["error"] = err.Error()
+
+		if err := a.bookRepository.Update(ctx, book); err != nil {
+			pkg.Logger.Printf("Error updating book status: %s\n", err)
+		}
+		return nil, fmt.Errorf("failed to index documents: %w", err)
+	}
+
+	return genkit.Run(ctx, "updateBookStatus", func() (any, error) {
+		book.Status = domain.StatusIndexed
+		return nil, a.bookRepository.Update(ctx, book)
 	})
 }
 

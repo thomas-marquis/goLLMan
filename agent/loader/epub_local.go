@@ -2,6 +2,7 @@ package loader
 
 import (
 	"fmt"
+
 	"github.com/JohannesKaufmann/dom"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
@@ -36,16 +37,10 @@ func NewLocalEpubLoader(repository domain.BookRepository) *LocalEpubLoader {
 	}
 }
 
-func (l *LocalEpubLoader) Load(book domain.Book) ([]*ai.Document, error) {
-	filePath, ok := book.Metadata["local_epub_filepath"].(string)
-	if !ok || filePath == "" {
-		return nil, fmt.Errorf("book %s by %s does not have a valid local epub filepath",
-			book.Title, book.Author)
-	}
-
-	parser, err := pamphlet.Open(filePath)
+func (l *LocalEpubLoader) Load(book domain.Book, file *domain.FileWithContent) ([]*ai.Document, error) {
+	parser, err := pamphlet.OpenBytes(file.Content)
 	if err != nil {
-		return nil, fmt.Errorf("error opening pdf at %s: %w", filePath, err)
+		return nil, fmt.Errorf("error opening epub content: %w", err)
 	}
 
 	parsedBook := parser.GetBook()

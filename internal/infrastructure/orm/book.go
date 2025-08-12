@@ -18,11 +18,18 @@ type Book struct {
 
 // ToDomain converts the ORM entity to domain entity
 func (b Book) ToDomain() domain.Book {
+	var metadata map[string]any
+	if b.Metadata == nil {
+		metadata = make(map[string]any)
+	} else {
+		metadata = b.Metadata
+	}
+
 	return domain.Book{
 		ID:       idToString(b.ID),
 		Title:    b.Title,
 		Author:   b.Author,
-		Metadata: b.Metadata,
+		Metadata: metadata,
 		Selected: b.Selected,
 		File: domain.File{
 			Name: b.FileName,

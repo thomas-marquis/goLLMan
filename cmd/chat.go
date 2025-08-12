@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 	"github.com/thomas-marquis/goLLMan/controller"
 	"github.com/thomas-marquis/goLLMan/controller/cmdline"
 	"github.com/thomas-marquis/goLLMan/controller/server"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +36,15 @@ var (
 			case controller.CtrlTypeCmdLine:
 				ctrl = cmdline.New(agentConfig, mainAgent.Flow())
 			case controller.CtrlTypeHTTP:
-				ctrl = server.New(agentConfig, mainAgent.Flow(), sessionStore, mainAgent.G(), bookRepository, fileRepository)
+				ctrl = server.New(
+					agentConfig,
+					mainAgent.Flow(),
+					mainAgent.IndexFlow(),
+					sessionStore,
+					mainAgent.G(),
+					bookRepository,
+					fileRepository,
+				)
 			default:
 				cmd.Println("unsupported controller type: %s", controllerType)
 				os.Exit(1)

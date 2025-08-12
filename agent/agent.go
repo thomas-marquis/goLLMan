@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"time"
+
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/core"
 	"github.com/firebase/genkit/go/genkit"
@@ -10,7 +12,6 @@ import (
 	"github.com/thomas-marquis/goLLMan/agent/session"
 	"github.com/thomas-marquis/goLLMan/internal/domain"
 	"github.com/thomas-marquis/goLLMan/pkg"
-	"time"
 )
 
 type ChatbotInput struct {
@@ -27,6 +28,7 @@ type Agent struct {
 	sessionStore    session.Store
 	cfg             Config
 	bookRepository  domain.BookRepository
+	fileRepository  domain.FileRepository
 	retriever       ai.Retriever
 	embedder        ai.Embedder
 }
@@ -37,8 +39,8 @@ func New(
 	docLoader loader.BookLoader,
 	bookRepository domain.BookRepository,
 	bookVectorStore domain.BookVectorStore,
+	fileRepository domain.FileRepository,
 ) *Agent {
-
 	ctx := context.Background()
 
 	rateLimit := cfg.MistralMaxRequestsPerSecond
@@ -63,6 +65,7 @@ func New(
 		bookRepository:  bookRepository,
 		docLoader:       docLoader,
 		bookVectorStore: bookVectorStore,
+		fileRepository:  fileRepository,
 	}
 
 	a.indexerFlow = genkit.DefineFlow(g, "indexerFlow", a.indexerFlowHandler)
@@ -82,6 +85,10 @@ func New(
 // Flow returns the chatbot flow used by the agent.
 func (a *Agent) Flow() *core.Flow[ChatbotInput, string, struct{}] {
 	return a.chatbotFlow
+}
+
+func (a *Agent) IndexFlow() *core.Flow[domain.Book, any, struct{}] {
+	return a.indexerFlow
 }
 
 // G returns the Genkit instance used by the agent.

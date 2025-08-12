@@ -38,6 +38,11 @@ func (s *Server) ToggleBookSelectionHandler(r *gin.Engine) {
 			return
 		}
 
+		if book.Status != domain.StatusIndexed {
+			showError(c, nil, "Selection failed", "This book was not indexed yet.")
+			return
+		}
+
 		book.Selected = !book.Selected
 		action := "selected"
 		if !book.Selected {
@@ -52,6 +57,20 @@ func (s *Server) ToggleBookSelectionHandler(r *gin.Engine) {
 
 		pkg.Logger.Printf("Toggle book selection: %s\n", c.Param("id"))
 		showSuccess(c, "Saved", "'%s' %s", book.Title, action)
+	})
+}
+
+func (s *Server) GetBookHandler(r *gin.Engine) {
+	r.GET("/books/:id", func(c *gin.Context) {
+		bookId := c.Param("id")
+		book, err := s.bookRepository.GetByID(c.Request.Context(), bookId)
+		if err != nil {
+			pkg.Logger.Printf("Error getting book: %s\n", err)
+			showError(c, err, "Internal error", "Unable to find this book")
+			return
+		}
+
+		c.HTML(http.StatusOK, "", components.BookCard(book))
 	})
 }
 
@@ -84,15 +103,15 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 			return
 		}
 
-		// TODO: inject the agent instead the flow
+		// TODO: inject the agent instead the ragFlow
 		// TODO: pass the session ID to the agent class
 		// TODO: dynamically set the book ID based on the current book context
 		in := agent.ChatbotInput{
 			Question: formData.Question,
 			Session:  sess.ID(),
 		}
-		if _, err = s.flow.Run(c.Request.Context(), in); err != nil {
-			pkg.Logger.Printf("Failed to generate response from flow: %s\n", err)
+		if _, err = s.ragFlow.Run(c.Request.Context(), in); err != nil {
+			pkg.Logger.Printf("Failed to generate response from ragFlow: %s\n", err)
 			showError(c, err, "Response generation failed", "")
 			return
 		}
@@ -105,7 +124,6 @@ func (s *Server) PostMessageHandler(r *gin.Engine, store session.Store) {
 
 func (s *Server) SSEMessagesHandler(r *gin.Engine, store session.Store, stream *eventStream) {
 	r.GET("/stream", headersSSEMiddleware(), stream.sseConnectMiddleware(), func(c *gin.Context) {
-		pkg.Logger.Println("Streaming messages")
 		sess, err := getSession(store, c.Request.Context())
 		if err != nil {
 			pkg.Logger.Println(err)
@@ -225,12 +243,12 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 		}
 
 		// Check if the book already exists
-		if _, err := s.bookRepository.GetByTitleAndAuthor(c.Request.Context(), book.Title, book.Author); err == nil {
-			if errors.Is(domain.ErrBookAlreadyExists, err) {
-				showInfo(c, "Book already exists",
-					"A book with the same title and author already exists in the library")
-				return
-			}
+		_, err = s.bookRepository.GetByTitleAndAuthor(c.Request.Context(), book.Title, book.Author)
+		if err == nil {
+			showInfo(c, "Book already exists",
+				"A book with the same title and author already exists in the library")
+			return
+		} else if !errors.Is(domain.ErrBookNotFound, err) {
 			pkg.Logger.Printf("Error getting book: %v", err)
 			showError(c, nil, "Upload failed", "Failed to get book")
 			return
@@ -249,13 +267,21 @@ func (s *Server) UploadBookHandler(r *gin.Engine) {
 			book.Author,
 			f,
 			book.Metadata,
-			domain.WithStatus(domain.StatusIndexing),
+			domain.WithStatus(domain.StatusNew),
 		)
 		if err != nil {
 			pkg.Logger.Printf("Error adding book to repository: %v", err)
 			showError(c, nil, "Upload failed", "Failed to add book to library")
 			return
 		}
+
+		go func() {
+			s.backgroundWork <- IndexWork{
+				Book: addedBook,
+				Flow: s.indexFlow,
+				Ctx:  context.Background(),
+			}
+		}()
 
 		showSuccess(c, "Book uploaded",
 			fmt.Sprintf("Book %s uploaded successfully. Indexing is starting...", addedBook.Title))
