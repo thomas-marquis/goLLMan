@@ -52,7 +52,7 @@ func New(
 				mistral.WithClientTimeout(cfg.MistralTimeout),
 			),
 		),
-		genkit.WithDefaultModel(cfg.CompletionModel),
+		//genkit.WithDefaultModel(cfg.CompletionModel),
 	)
 	if err != nil {
 		pkg.Logger.Fatalf("failed to init genkit: %s", err)

@@ -13,12 +13,14 @@ import (
 )
 
 const (
-	systemPrompt = `You are an assistant designed to help users by answering their questions using information from a specific book.
-Some of extract of this book will be provided with the users question or message. Before responding, search the book
-for relevant information. If the answer is not found in the book, politely state that the information is not available
-in the current source. Make sure to use only the information from the book to formulate your responses. Be concise and
-accurate with your answer. Use the same language as the user.  The book information aren't send to you by the user
-himself, so don't talk him about that. Just summarize and answer the question.`
+	systemPrompt = `You are a helpful assistant. A user will ask you a question or send you a message with all the documents necessary to answer and you have to answer him/her appropriately.
+Follow ALL those rules:
+* Don't make up answers. If you don't know the answer or you're not sure', just say "I don't know".
+* Use pieces of information provided along the user's question to answer, NOTHING ELSE.
+* Be concise and accurate.
+* Answer in the same language as the user.
+* If you're not sure, ask the user for clarification.
+* Format your response in Markdown.`
 )
 
 func (a *Agent) indexerFlowHandler(ctx context.Context, book domain.Book) (any, error) {
@@ -131,11 +133,13 @@ func (a *Agent) chatbotAiFlowHandler(ctx context.Context, input ChatbotInput) (s
 	}
 
 	resp, err := genkit.Run(ctx, "generateResponse", func() (*ai.ModelResponse, error) {
+		question := "# User's message:\n" + input.Question + "\n\n"
 		return genkit.Generate(ctx, a.g,
 			ai.WithSystem(systemPrompt),
 			ai.WithMessages(prevMsg...),
-			ai.WithPrompt(input.Question),
+			ai.WithPrompt(question),
 			ai.WithDocs(docs...),
+			ai.WithModelName(a.cfg.CompletionModel),
 		)
 	})
 	if err != nil {

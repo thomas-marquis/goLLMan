@@ -14,7 +14,7 @@ generate:
 .PHONY: generate
 
 ui:
-	@genkit start -- go run main.go chat -i http -v
+	@genkit start -- go run main.go chat -i http -v -c config/config-staging.yaml
 .PHONY: ui
 
 documents/%.zip:
